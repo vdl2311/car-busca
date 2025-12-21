@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { AppRoute } from '../types';
@@ -119,7 +120,7 @@ const ReportResult: React.FC = () => {
                     model: 'gemini-3-flash-preview',
                     contents: prompt,
                     config: {
-                        systemInstruction: "Especialista automotivo. Responda apenas JSON.",
+                        systemInstruction: "Especialista automotivo. Responda apenas JSON. No campo expertTips, forneça orientações claras e acionáveis.",
                         responseMimeType: "application/json",
                         responseSchema: responseSchema
                     }
@@ -203,9 +204,9 @@ const ReportResult: React.FC = () => {
             <main className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full print:p-0">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 print:block">
                     
-                    {/* Column 1: Score & Summary (3/12) */}
+                    {/* Column 1: Score & Summary (4/12) */}
                     <aside className="lg:col-span-4 flex flex-col gap-6 print:mb-8">
-                        {/* Score Card - More dense */}
+                        {/* Score Card */}
                         <div className="bg-slate-900 dark:bg-surface-dark rounded-3xl p-6 text-white shadow-xl relative overflow-hidden group">
                             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
                                 <span className="material-symbols-outlined text-6xl">verified</span>
@@ -223,7 +224,7 @@ const ReportResult: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* Owner Reviews - Grid on desktop instead of scroll */}
+                        {/* Owner Reviews */}
                         <div className="flex flex-col gap-4">
                             <h3 className="text-lg font-bold flex items-center gap-2 px-2">
                                 <span className="material-symbols-outlined text-primary">forum</span>
@@ -255,7 +256,7 @@ const ReportResult: React.FC = () => {
                                     <span className="material-symbols-outlined text-red-500">dangerous</span>
                                     Problemas Crônicos
                                 </h3>
-                                <span className="text-xs font-bold text-slate-400 uppercase">3-5 Ocorrências Comuns</span>
+                                <span className="text-xs font-bold text-slate-400 uppercase">Alertas IA</span>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {reportData.defects.map((defect) => (
@@ -269,40 +270,47 @@ const ReportResult: React.FC = () => {
                                             </div>
                                         </div>
                                         <h4 className="text-lg font-bold mb-1">{defect.title}</h4>
-                                        <p className="text-sm text-slate-500 dark:text-gray-400 leading-relaxed">{defect.description}</p>
+                                        <p className="text-sm text-slate-600 dark:text-gray-300 leading-relaxed">{defect.description}</p>
                                         <div className="mt-4 pt-3 border-t border-gray-50 dark:border-gray-800 flex items-center gap-2">
                                             <span className="text-[10px] font-bold text-slate-400 uppercase">Frequência:</span>
-                                            <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300">{defect.frequency}</span>
+                                            <span className="text-[10px] font-bold text-slate-600 dark:text-slate-200">{defect.frequency}</span>
                                         </div>
                                     </div>
                                 ))}
                             </div>
                         </section>
 
-                        {/* Section: Expert Tips - More Compact Grid */}
-                        <section className="bg-white dark:bg-surface-dark rounded-[2.5rem] border border-gray-200 dark:border-gray-800 overflow-hidden shadow-sm">
-                            <div className="bg-slate-50 dark:bg-gray-800/50 p-6 border-b border-gray-100 dark:border-gray-800">
-                                <h3 className="text-xl font-black flex items-center gap-2">
+                        {/* Section: Expert Tips - REFORCED VISIBILITY */}
+                        <section className="bg-white dark:bg-surface-dark rounded-[2.5rem] border border-gray-200 dark:border-gray-800 overflow-hidden shadow-md">
+                            <div className="bg-slate-50 dark:bg-gray-800/80 p-6 border-b border-gray-100 dark:border-gray-700">
+                                <h3 className="text-xl font-black flex items-center gap-2 text-slate-900 dark:text-white">
                                     <span className="material-symbols-outlined text-primary">verified_user</span>
                                     Plano de Manutenção Preventiva
                                 </h3>
                             </div>
-                            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="p-6 grid grid-cols-1 gap-6">
                                 {reportData.expertTips.map((tip, idx) => (
-                                    <div key={idx} className="flex gap-4 items-start">
-                                        <div className={`mt-1 size-8 shrink-0 rounded-full flex items-center justify-center border-2 ${tip.priority === 'Alta' ? 'border-red-500 text-red-500' : 'border-primary text-primary'}`}>
-                                            <span className="material-symbols-outlined text-[18px]">build</span>
+                                    <div key={idx} className="flex gap-5 items-start p-4 rounded-2xl bg-slate-50/50 dark:bg-gray-800/30 border border-slate-100 dark:border-gray-700/50 hover:bg-white dark:hover:bg-gray-800 transition-all">
+                                        <div className={`mt-1 size-10 shrink-0 rounded-xl flex items-center justify-center border-2 ${tip.priority === 'Alta' ? 'border-red-500 bg-red-500/10 text-red-500' : 'border-primary bg-primary/10 text-primary'}`}>
+                                            <span className="material-symbols-outlined text-[24px]">build</span>
                                         </div>
                                         <div>
-                                            <h4 className="font-bold text-sm mb-1">{tip.title}</h4>
-                                            <p className="text-xs text-slate-500 leading-relaxed">{tip.content}</p>
+                                            <h4 className="font-extrabold text-base text-slate-900 dark:text-white mb-1.5">{tip.title}</h4>
+                                            <p className="text-sm text-slate-700 dark:text-slate-200 leading-relaxed font-medium">
+                                                {tip.content}
+                                            </p>
+                                            <div className="mt-2 flex items-center gap-2">
+                                                <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded ${tip.priority === 'Alta' ? 'bg-red-500 text-white' : 'bg-primary text-white'}`}>
+                                                    Prioridade {tip.priority}
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
                                 ))}
                             </div>
-                            <div className="p-4 bg-slate-50 dark:bg-gray-800/30 text-center border-t border-gray-100 dark:border-gray-800">
-                                <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest">
-                                    Fontes: {reportData.sources.join(' • ')}
+                            <div className="p-4 bg-slate-100 dark:bg-gray-900/50 text-center border-t border-gray-200 dark:border-gray-800">
+                                <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-black tracking-widest">
+                                    Fontes Técnicas: {reportData.sources.join(' • ')}
                                 </p>
                             </div>
                         </section>
