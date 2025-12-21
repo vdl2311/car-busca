@@ -1,24 +1,27 @@
+# AutoIntel AI - Deploy Guide
 
-# AutoIntel AI
+Para que a IA e o Chat funcionem no Vercel, você deve configurar as Variáveis de Ambiente no painel do projeto.
 
-Plataforma inteligente de análise veicular.
+## Passo-a-passo para Vercel
 
-## Como fazer o Deploy
+1. **Suba seu código para o GitHub** (certifique-se de que o `package.json` e `vite.config.ts` estão na raiz).
+2. No painel da **Vercel**, clique em **"Add New"** > **"Project"**.
+3. Importe seu repositório.
+4. Antes de clicar em Deploy, abra a seção **"Environment Variables"**.
+5. Adicione as seguintes chaves exatamente com estes nomes:
 
-### 1. GitHub
-Suba os arquivos para um repositório no GitHub (exceto as pastas no `.gitignore`).
+| Nome da Variável | Onde encontrar |
+| :--- | :--- |
+| `API_KEY` | [Google AI Studio (Gemini)](https://aistudio.google.com/app/apikey) |
+| `VITE_SUPABASE_URL` | Configurações do seu projeto Supabase > API |
+| `VITE_SUPABASE_ANON_KEY` | Configurações do seu projeto Supabase > API > anon public |
 
-### 2. Vercel
-1. No dashboard da Vercel, clique em "Add New" > "Project".
-2. Importe o repositório do GitHub.
-3. Em **Environment Variables**, adicione:
-   - `API_KEY`: Sua chave da API do Google Gemini.
-   - `VITE_SUPABASE_URL`: URL do seu projeto Supabase.
-   - `VITE_SUPABASE_ANON_KEY`: Chave anônima do seu Supabase.
-4. Clique em "Deploy".
+6. Clique em **Deploy**.
+
+## Por que isso é necessário?
+Diferente do ambiente local, o navegador não tem acesso direto às chaves por segurança. Durante o build na Vercel, o Vite lê essas variáveis e as "escreve" no código final que será entregue ao usuário, permitindo que as chamadas à API do Gemini e ao Supabase funcionem.
 
 ## Desenvolvimento Local
-```bash
-npm install
-npm run dev
-```
+1. Crie um arquivo chamado `.env.local` na raiz.
+2. Adicione as mesmas variáveis acima.
+3. Rode `npm install` e `npm run dev`.
