@@ -1,11 +1,24 @@
-<div align="center">
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+# AutoIntel AI
 
-  <h1>Built with AI Studio</h2>
+Plataforma inteligente de análise veicular.
 
-  <p>The fastest path from prompt to production with Gemini.</p>
+## Como fazer o Deploy
 
-  <a href="https://aistudio.google.com/apps">Start building</a>
+### 1. GitHub
+Suba os arquivos para um repositório no GitHub (exceto as pastas no `.gitignore`).
 
-</div>
+### 2. Vercel
+1. No dashboard da Vercel, clique em "Add New" > "Project".
+2. Importe o repositório do GitHub.
+3. Em **Environment Variables**, adicione:
+   - `API_KEY`: Sua chave da API do Google Gemini.
+   - `VITE_SUPABASE_URL`: URL do seu projeto Supabase.
+   - `VITE_SUPABASE_ANON_KEY`: Chave anônima do seu Supabase.
+4. Clique em "Deploy".
+
+## Desenvolvimento Local
+```bash
+npm install
+npm run dev
+```
