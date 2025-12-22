@@ -1,8 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppRoute } from '../types';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
+import { Provider } from '@supabase/supabase-js';
 
 const Login: React.FC = () => {
     const navigate = useNavigate();
@@ -12,6 +14,7 @@ const Login: React.FC = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
+    const [socialLoading, setSocialLoading] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
@@ -49,6 +52,23 @@ const Login: React.FC = () => {
         }
     };
 
+    const handleOAuthLogin = async (provider: Provider) => {
+        setSocialLoading(provider);
+        setError(null);
+        try {
+            const { error } = await supabase.auth.signInWithOAuth({
+                provider,
+                options: {
+                    redirectTo: window.location.origin,
+                },
+            });
+            if (error) throw error;
+        } catch (err: any) {
+            setError(err.message || `Erro ao entrar com ${provider}`);
+            setSocialLoading(null);
+        }
+    };
+
     return (
         <div className="flex min-h-screen w-full items-center justify-center p-4 md:bg-gray-50 md:dark:bg-[#0B1019]">
             <div className="w-full max-w-md bg-background-light dark:bg-background-dark md:bg-white md:dark:bg-surface-dark md:shadow-2xl md:rounded-3xl md:border md:border-gray-100 md:dark:border-gray-800 md:p-8 overflow-hidden flex flex-col">
@@ -58,7 +78,7 @@ const Login: React.FC = () => {
                     <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center shadow-lg shadow-primary/20 mb-4">
                         <span className="material-symbols-outlined text-white text-4xl">directions_car</span>
                     </div>
-                    <h2 className="text-2xl font-bold tracking-tight text-center">AutoScan AI</h2>
+                    <h2 className="text-2xl font-bold tracking-tight text-center">AutoScan IA</h2>
                     <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mt-1 text-center">Análise veicular inteligente e precisa</p>
                 </div>
 
@@ -132,7 +152,7 @@ const Login: React.FC = () => {
                         <div className="flex items-center justify-between">
                             <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Senha</label>
                             {authMode === 'login' && (
-                                <a className="text-xs font-semibold text-primary hover:text-blue-400 transition-colors" href="#">Esqueceu sua senha?</a>
+                                <button type="button" className="text-xs font-semibold text-primary hover:text-blue-400 transition-colors">Esqueceu sua senha?</button>
                             )}
                         </div>
                         <div className="relative flex items-center">
@@ -145,16 +165,13 @@ const Login: React.FC = () => {
                                 type="password"
                                 required
                             />
-                            <button className="absolute right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex items-center" type="button">
-                                <span className="material-symbols-outlined text-[20px]">visibility</span>
-                            </button>
                         </div>
                     </div>
 
                     {/* Primary Action Button */}
                     <button 
                         type="submit" 
-                        disabled={loading}
+                        disabled={loading || !!socialLoading}
                         className="mt-2 w-full rounded-xl bg-primary py-3.5 text-sm font-bold text-white shadow-lg shadow-primary/25 hover:bg-blue-600 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                     >
                         {loading ? (
@@ -178,20 +195,42 @@ const Login: React.FC = () => {
 
                     {/* Social Login Buttons */}
                     <div className="grid grid-cols-2 gap-4">
-                        <button className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-border-dark md:dark:border-gray-700 bg-white dark:bg-surface-dark md:dark:bg-background-dark py-3 text-sm font-medium text-slate-700 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" type="button">
-                            <span className="font-bold text-lg bg-clip-text text-transparent bg-gradient-to-r from-blue-500 via-red-500 to-yellow-500">G</span>
-                            <span>Google</span>
+                        <button 
+                            onClick={() => handleOAuthLogin('google')}
+                            disabled={loading || !!socialLoading}
+                            className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-border-dark md:dark:border-gray-700 bg-white dark:bg-surface-dark md:dark:bg-background-dark py-3 text-sm font-medium text-slate-700 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors disabled:opacity-50" 
+                            type="button"
+                        >
+                            {socialLoading === 'google' ? (
+                                <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
+                            ) : (
+                                <>
+                                    <span className="font-bold text-lg bg-clip-text text-transparent bg-gradient-to-r from-blue-500 via-red-500 to-yellow-500">G</span>
+                                    <span>Google</span>
+                                </>
+                            )}
                         </button>
-                        <button className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-border-dark md:dark:border-gray-700 bg-white dark:bg-surface-dark md:dark:bg-background-dark py-3 text-sm font-medium text-slate-700 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" type="button">
-                            <span className="font-bold text-lg text-[#1877F2]">f</span>
-                            <span>Facebook</span>
+                        <button 
+                            onClick={() => handleOAuthLogin('facebook')}
+                            disabled={loading || !!socialLoading}
+                            className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-border-dark md:dark:border-gray-700 bg-white dark:bg-surface-dark md:dark:bg-background-dark py-3 text-sm font-medium text-slate-700 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors disabled:opacity-50" 
+                            type="button"
+                        >
+                            {socialLoading === 'facebook' ? (
+                                <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
+                            ) : (
+                                <>
+                                    <span className="font-bold text-lg text-[#1877F2]">f</span>
+                                    <span>Facebook</span>
+                                </>
+                            )}
                         </button>
                     </div>
                 </form>
 
                 {/* Footer / Terms */}
-                <div className="p-6 pt-0 mt-auto md:mt-2">
-                    <div className="flex items-center justify-center gap-1.5 opacity-60">
+                <div className="p-6 pt-0 mt-auto md:mt-2 text-center">
+                    <div className="flex items-center justify-center gap-1.5 opacity-60 mb-2">
                         <span className="material-symbols-outlined text-green-500 text-xs">verified_user</span>
                         <span className="text-xs text-slate-500 dark:text-slate-400">Seus dados estão protegidos e criptografados.</span>
                     </div>

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { AppRoute } from '../types';
@@ -9,8 +10,7 @@ const Sidebar: React.FC = () => {
 
     const navItems = [
         { icon: 'home', label: 'Início', path: AppRoute.HOME },
-        { icon: 'forum', label: 'Comunidade', path: AppRoute.COMMUNITY },
-        { icon: 'smart_toy', label: 'Mecânico AI', path: AppRoute.REPORT_ISSUE },
+        { icon: 'smart_toy', label: 'Mecânico Virtual', path: AppRoute.REPORT_ISSUE },
         { icon: 'person', label: 'Perfil', path: AppRoute.PROFILE },
     ];
 
@@ -20,7 +20,7 @@ const Sidebar: React.FC = () => {
                 <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/20 text-primary">
                     <span className="material-symbols-outlined text-[24px]">network_intelligence</span>
                 </div>
-                <h1 className="text-slate-900 dark:text-white font-bold text-2xl tracking-tight">AutoIntel</h1>
+                <h1 className="text-slate-900 dark:text-white font-bold text-2xl tracking-tight">AutoIntel IA</h1>
             </div>
 
             <nav className="flex-1 space-y-2">
@@ -38,9 +38,6 @@ const Sidebar: React.FC = () => {
                             {item.icon}
                         </span>
                         <span>{item.label}</span>
-                        {item.path === AppRoute.COMMUNITY && (
-                             <span className={`ml-auto w-2 h-2 rounded-full ${isActive(item.path) ? 'bg-white' : 'bg-red-500'}`}></span>
-                        )}
                     </button>
                 ))}
             </nav>

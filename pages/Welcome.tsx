@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppRoute } from '../types';
@@ -23,7 +24,7 @@ const Welcome: React.FC = () => {
                         <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/20 text-primary">
                             <span className="material-symbols-outlined text-[24px]">network_intelligence</span>
                         </div>
-                        <h1 className="text-slate-900 dark:text-white tracking-tight text-[26px] font-bold leading-tight">AutoIntel</h1>
+                        <h1 className="text-slate-900 dark:text-white tracking-tight text-[26px] font-bold leading-tight">AutoIntel IA</h1>
                     </div>
 
                     {/* Hero Graphic (No Image) */}

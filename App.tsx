@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { HashRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { AppRoute } from './types';
@@ -7,7 +8,6 @@ import Login from './pages/Login';
 import VehicleInput from './pages/VehicleInput';
 import ReportResult from './pages/ReportResult';
 import DefectDetail from './pages/DefectDetail';
-import Community from './pages/Community';
 import Profile from './pages/Profile';
 import ReportIssue from './pages/ReportIssue';
 import BottomNav from './components/BottomNav';
@@ -30,7 +30,6 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     // Pages that show the bottom navigation on mobile
     const showBottomNav = [
         AppRoute.HOME,
-        AppRoute.COMMUNITY,
         AppRoute.PROFILE,
         AppRoute.REPORT_RESULT
     ].includes(location.pathname as AppRoute);
@@ -59,7 +58,6 @@ const App: React.FC = () => {
                         <Route path={AppRoute.HOME} element={<VehicleInput />} />
                         <Route path={AppRoute.REPORT_RESULT} element={<ReportResult />} />
                         <Route path={AppRoute.DEFECT_DETAIL} element={<DefectDetail />} />
-                        <Route path={AppRoute.COMMUNITY} element={<Community />} />
                         <Route path={AppRoute.PROFILE} element={<Profile />} />
                         <Route path={AppRoute.REPORT_ISSUE} element={<ReportIssue />} />
                     </Routes>

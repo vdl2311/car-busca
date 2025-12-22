@@ -1,10 +1,10 @@
+
 export enum AppRoute {
     WELCOME = '/',
     LOGIN = '/login',
     HOME = '/home',
     REPORT_RESULT = '/report-result',
     DEFECT_DETAIL = '/defect-detail',
-    COMMUNITY = '/community',
     PROFILE = '/profile',
     REPORT_ISSUE = '/report-issue'
 }

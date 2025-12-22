@@ -78,7 +78,7 @@ const ReportResult: React.FC = () => {
                                 type: Type.OBJECT,
                                 properties: {
                                     id: { type: Type.STRING },
-                                    title: { type: Type.STRING },
+                                    title: { type: Type.STRING, description: "Nome do defeito ou componente em PORTUGUÊS (ex: Motor, Câmbio, Freios)" },
                                     description: { type: Type.STRING },
                                     severity: { type: Type.STRING },
                                     frequency: { type: Type.STRING },
@@ -120,7 +120,7 @@ const ReportResult: React.FC = () => {
                     model: 'gemini-3-flash-preview',
                     contents: prompt,
                     config: {
-                        systemInstruction: "Especialista automotivo. Responda apenas JSON. No campo expertTips, forneça orientações claras e acionáveis.",
+                        systemInstruction: "Você é um Especialista Automotivo. Responda APENAS JSON. IMPORTANTE: Todos os títulos de defeitos crônicos DEVEM estar em Português do Brasil. NUNCA use 'Engine', use 'Motor'. NUNCA use 'Brakes', use 'Freios'. NUNCA use 'Suspension', use 'Suspensão'.",
                         responseMimeType: "application/json",
                         responseSchema: responseSchema
                     }
@@ -226,7 +226,7 @@ const ReportResult: React.FC = () => {
 
                         {/* Owner Reviews */}
                         <div className="flex flex-col gap-4">
-                            <h3 className="text-lg font-bold flex items-center gap-2 px-2">
+                            <h3 className="text-lg font-bold flex items-center gap-2 px-2 text-slate-900 dark:text-white">
                                 <span className="material-symbols-outlined text-primary">forum</span>
                                 Feedback de Donos
                             </h3>
@@ -239,7 +239,7 @@ const ReportResult: React.FC = () => {
                                             </div>
                                             <span className="text-xs font-bold text-slate-500">{review.userLabel}</span>
                                         </div>
-                                        <p className="text-sm text-slate-600 dark:text-slate-300 italic leading-snug">"{review.quote}"</p>
+                                        <p className="text-sm text-slate-700 dark:text-slate-300 italic leading-snug font-medium">"{review.quote}"</p>
                                     </div>
                                 ))}
                             </div>
@@ -252,7 +252,7 @@ const ReportResult: React.FC = () => {
                         {/* Section: Chronic Defects */}
                         <section>
                             <div className="flex items-center justify-between mb-4 px-2">
-                                <h3 className="text-xl font-black flex items-center gap-2">
+                                <h3 className="text-xl font-black flex items-center gap-2 text-slate-900 dark:text-white">
                                     <span className="material-symbols-outlined text-red-500">dangerous</span>
                                     Problemas Crônicos
                                 </h3>
@@ -269,38 +269,39 @@ const ReportResult: React.FC = () => {
                                                 Risco {defect.severity}
                                             </div>
                                         </div>
-                                        <h4 className="text-lg font-bold mb-1">{defect.title}</h4>
-                                        <p className="text-sm text-slate-600 dark:text-gray-300 leading-relaxed">{defect.description}</p>
+                                        <h4 className="text-lg font-black mb-1 text-slate-900 dark:text-white uppercase tracking-tight">{defect.title}</h4>
+                                        <p className="text-sm text-slate-700 dark:text-gray-200 leading-relaxed font-medium">{defect.description}</p>
                                         <div className="mt-4 pt-3 border-t border-gray-50 dark:border-gray-800 flex items-center gap-2">
                                             <span className="text-[10px] font-bold text-slate-400 uppercase">Frequência:</span>
-                                            <span className="text-[10px] font-bold text-slate-600 dark:text-slate-200">{defect.frequency}</span>
+                                            <span className="text-[10px] font-bold text-slate-800 dark:text-slate-200">{defect.frequency}</span>
                                         </div>
                                     </div>
                                 ))}
                             </div>
                         </section>
 
-                        {/* Section: Expert Tips - REFORCED VISIBILITY */}
-                        <section className="bg-white dark:bg-surface-dark rounded-[2.5rem] border border-gray-200 dark:border-gray-800 overflow-hidden shadow-md">
+                        {/* Section: Expert Tips - HIGH CLARITY */}
+                        <section className="bg-white dark:bg-surface-dark rounded-[2.5rem] border border-gray-200 dark:border-gray-800 overflow-hidden shadow-lg">
                             <div className="bg-slate-50 dark:bg-gray-800/80 p-6 border-b border-gray-100 dark:border-gray-700">
                                 <h3 className="text-xl font-black flex items-center gap-2 text-slate-900 dark:text-white">
                                     <span className="material-symbols-outlined text-primary">verified_user</span>
                                     Plano de Manutenção Preventiva
                                 </h3>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-bold">Orientações sugeridas por nossa inteligência técnica</p>
                             </div>
                             <div className="p-6 grid grid-cols-1 gap-6">
                                 {reportData.expertTips.map((tip, idx) => (
-                                    <div key={idx} className="flex gap-5 items-start p-4 rounded-2xl bg-slate-50/50 dark:bg-gray-800/30 border border-slate-100 dark:border-gray-700/50 hover:bg-white dark:hover:bg-gray-800 transition-all">
-                                        <div className={`mt-1 size-10 shrink-0 rounded-xl flex items-center justify-center border-2 ${tip.priority === 'Alta' ? 'border-red-500 bg-red-500/10 text-red-500' : 'border-primary bg-primary/10 text-primary'}`}>
-                                            <span className="material-symbols-outlined text-[24px]">build</span>
+                                    <div key={idx} className="flex gap-5 items-start p-5 rounded-2xl bg-slate-100/50 dark:bg-gray-800/40 border border-slate-200 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-800 transition-all shadow-sm">
+                                        <div className={`mt-1 size-12 shrink-0 rounded-xl flex items-center justify-center border-2 ${tip.priority === 'Alta' ? 'border-red-500 bg-red-500/10 text-red-500' : 'border-primary bg-primary/10 text-primary'}`}>
+                                            <span className="material-symbols-outlined text-[28px]">build</span>
                                         </div>
-                                        <div>
-                                            <h4 className="font-extrabold text-base text-slate-900 dark:text-white mb-1.5">{tip.title}</h4>
-                                            <p className="text-sm text-slate-700 dark:text-slate-200 leading-relaxed font-medium">
+                                        <div className="flex-1">
+                                            <h4 className="font-black text-lg text-slate-900 dark:text-white mb-2 tracking-tight">{tip.title}</h4>
+                                            <p className="text-sm text-slate-800 dark:text-slate-100 leading-relaxed font-semibold">
                                                 {tip.content}
                                             </p>
-                                            <div className="mt-2 flex items-center gap-2">
-                                                <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded ${tip.priority === 'Alta' ? 'bg-red-500 text-white' : 'bg-primary text-white'}`}>
+                                            <div className="mt-3 flex items-center gap-2">
+                                                <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-full ${tip.priority === 'Alta' ? 'bg-red-500 text-white' : 'bg-primary text-white'}`}>
                                                     Prioridade {tip.priority}
                                                 </span>
                                             </div>
@@ -321,7 +322,7 @@ const ReportResult: React.FC = () => {
 
             {/* Print Footer */}
             <footer className="hidden print:block p-8 border-t mt-10 text-center text-xs text-gray-400">
-                Este relatório foi gerado automaticamente pela AutoIntel AI e possui caráter meramente informativo.
+                Este relatório foi gerado automaticamente pela AutoIntel IA e possui caráter meramente informativo.
             </footer>
         </div>
     );

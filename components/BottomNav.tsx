@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { AppRoute } from '../types';
@@ -10,9 +11,8 @@ const BottomNav: React.FC = () => {
 
     const navItems = [
         { icon: 'home', label: 'Início', path: AppRoute.HOME },
-        { icon: 'directions_car', label: 'Garagem', path: AppRoute.HOME }, // Reusing home for demo
-        { icon: 'forum', label: 'Comunidade', path: AppRoute.COMMUNITY, badge: true },
-        { icon: 'smart_toy', label: 'Mecânico AI', path: AppRoute.REPORT_ISSUE },
+        { icon: 'directions_car', label: 'Garagem', path: AppRoute.HOME }, 
+        { icon: 'smart_toy', label: 'Mecânico Virtual', path: AppRoute.REPORT_ISSUE },
         { icon: 'person', label: 'Perfil', path: AppRoute.PROFILE },
     ];
 
@@ -40,9 +40,6 @@ const BottomNav: React.FC = () => {
                                 {item.icon}
                             </span>
                             <span className="text-[10px] font-medium mt-1">{item.label}</span>
-                            {item.badge && !active && (
-                                <span className="absolute top-3 right-5 sm:right-7 block h-2 w-2 rounded-full bg-red-500 ring-1 ring-background-dark"></span>
-                            )}
                         </button>
                     );
                 })}
