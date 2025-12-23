@@ -48,7 +48,7 @@ const ReportResult: React.FC = () => {
     
     const [reportData, setReportData] = useState<ReportData | null>(null);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(false);
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [isSaving, setIsSaving] = useState(false);
 
     // Helper function to force translation of common technical terms if AI fails
@@ -57,7 +57,6 @@ const ReportResult: React.FC = () => {
         
         const upper = term.toUpperCase().trim();
         
-        // Mapeamento direto para termos comuns que a IA pode retornar em inglês
         const exactMap: Record<string, string> = {
             "ENGINE": "MOTOR",
             "ENGINE SYSTEM": "SISTEMA DO MOTOR",
@@ -93,9 +92,7 @@ const ReportResult: React.FC = () => {
 
         if (exactMap[upper]) return exactMap[upper];
 
-        // Se não for exato, tenta substituir palavras chave dentro da frase
         let translated = term;
-        
         const replacements: Record<string, string> = {
             "Engine": "Motor",
             "Brakes": "Freios",
@@ -136,114 +133,143 @@ const ReportResult: React.FC = () => {
         return translated;
     };
 
-    // Gera um número inteiro único baseado na string do carro para usar como Seed
     const generateVehicleSeed = (str: string): number => {
         let hash = 0;
         if (str.length === 0) return hash;
         for (let i = 0; i < str.length; i++) {
             const char = str.charCodeAt(i);
             hash = ((hash << 5) - hash) + char;
-            hash = hash & hash; // Converte para 32bit integer
+            hash = hash & hash;
         }
         return Math.abs(hash);
     };
 
-    useEffect(() => {
-        const fetchReport = async () => {
-            if (savedReportData) {
-                setReportData(savedReportData);
-                setLoading(false);
-                return;
+    const fetchReport = async () => {
+        setLoading(true);
+        setErrorMsg(null);
+
+        if (savedReportData) {
+            setReportData(savedReportData);
+            setLoading(false);
+            return;
+        }
+
+        try {
+            const apiKey = process.env.API_KEY;
+            
+            // Verificação explícita da chave
+            if (!apiKey || apiKey.includes("undefined")) {
+                throw new Error("Chave de API (API_KEY) não encontrada nas Variáveis de Ambiente do Vercel.");
             }
 
-            try {
-                const apiKey = process.env.API_KEY;
-                if (!apiKey) throw new Error("API Key not found");
+            const ai = new GoogleGenAI({ apiKey });
+            
+            const prompt = `Analise o veículo: ${brand} ${model} ano ${year}. ${hasKm ? `KM atual: ${km}.` : ''}
+            
+            Liste os 4 a 6 DEFEITOS CRÔNICOS MAIS COMUNS E FAMOSOS deste modelo no Brasil.
+            Foque naqueles problemas que todo dono reclama ou que mecânicos conhecem bem (vício oculto, desgaste prematuro recorrente).
+            TRADUZA TUDO PARA PORTUGUÊS.`;
 
-                const ai = new GoogleGenAI({ apiKey });
-                
-                // Prompt focado nos problemas MAIS COMUNS
-                const prompt = `Analise o veículo: ${brand} ${model} ano ${year}. ${hasKm ? `KM atual: ${km}.` : ''}
-                
-                Liste os 4 a 6 DEFEITOS CRÔNICOS MAIS COMUNS E FAMOSOS deste modelo no Brasil.
-                Foque naqueles problemas que todo dono reclama ou que mecânicos conhecem bem (vício oculto, desgaste prematuro recorrente).
-                TRADUZA TUDO PARA PORTUGUÊS.`;
-
-                const responseSchema: Schema = {
-                    type: Type.OBJECT,
-                    properties: {
-                        score: { type: Type.NUMBER },
-                        reliabilityTitle: { type: Type.STRING },
-                        reliabilityDescription: { type: Type.STRING },
-                        defects: {
-                            type: Type.ARRAY,
-                            items: {
-                                type: Type.OBJECT,
-                                properties: {
-                                    id: { type: Type.STRING },
-                                    title: { type: Type.STRING, description: "Nome do sistema em PORTUGUÊS (ex: Câmbio Powershift, Motor THP, Suspensão Dianteira)" },
-                                    description: { type: Type.STRING, description: "Descrição técnica do problema comum." },
-                                    severity: { type: Type.STRING },
-                                    frequency: { type: Type.STRING },
-                                    icon: { type: Type.STRING }
-                                },
-                                required: ["id", "title", "description", "severity", "frequency", "icon"]
-                            }
-                        },
-                        ownerReviews: {
-                            type: Type.ARRAY,
-                            items: {
-                                type: Type.OBJECT,
-                                properties: {
-                                    userLabel: { type: Type.STRING },
-                                    quote: { type: Type.STRING },
-                                    sentiment: { type: Type.STRING }
-                                },
-                                required: ["userLabel", "quote", "sentiment"]
-                            }
-                        },
-                        expertTips: {
-                            type: Type.ARRAY,
-                            items: {
-                                type: Type.OBJECT,
-                                properties: {
-                                    title: { type: Type.STRING },
-                                    content: { type: Type.STRING },
-                                    priority: { type: Type.STRING }
-                                },
-                                required: ["title", "content", "priority"]
-                            }
-                        },
-                        sources: { type: Type.ARRAY, items: { type: Type.STRING } }
+            const responseSchema: Schema = {
+                type: Type.OBJECT,
+                properties: {
+                    score: { type: Type.NUMBER },
+                    reliabilityTitle: { type: Type.STRING },
+                    reliabilityDescription: { type: Type.STRING },
+                    defects: {
+                        type: Type.ARRAY,
+                        items: {
+                            type: Type.OBJECT,
+                            properties: {
+                                id: { type: Type.STRING },
+                                title: { type: Type.STRING, description: "Nome do sistema em PORTUGUÊS (ex: Câmbio Powershift, Motor THP, Suspensão Dianteira)" },
+                                description: { type: Type.STRING, description: "Descrição técnica do problema comum." },
+                                severity: { type: Type.STRING },
+                                frequency: { type: Type.STRING },
+                                icon: { type: Type.STRING }
+                            },
+                            required: ["id", "title", "description", "severity", "frequency", "icon"]
+                        }
                     },
-                    required: ["score", "reliabilityTitle", "reliabilityDescription", "defects", "ownerReviews", "expertTips", "sources"]
-                };
+                    ownerReviews: {
+                        type: Type.ARRAY,
+                        items: {
+                            type: Type.OBJECT,
+                            properties: {
+                                userLabel: { type: Type.STRING },
+                                quote: { type: Type.STRING },
+                                sentiment: { type: Type.STRING }
+                            },
+                            required: ["userLabel", "quote", "sentiment"]
+                        }
+                    },
+                    expertTips: {
+                        type: Type.ARRAY,
+                        items: {
+                            type: Type.OBJECT,
+                            properties: {
+                                title: { type: Type.STRING },
+                                content: { type: Type.STRING },
+                                priority: { type: Type.STRING }
+                            },
+                            required: ["title", "content", "priority"]
+                        }
+                    },
+                    sources: { type: Type.ARRAY, items: { type: Type.STRING } }
+                },
+                required: ["score", "reliabilityTitle", "reliabilityDescription", "defects", "ownerReviews", "expertTips", "sources"]
+            };
 
-                // Seed determinística baseada no veículo
-                const vehicleId = `${brand}-${model}-${year}`.toLowerCase();
-                const seed = generateVehicleSeed(vehicleId);
+            const vehicleId = `${brand}-${model}-${year}`.toLowerCase();
+            const seed = generateVehicleSeed(vehicleId);
 
-                const response = await ai.models.generateContent({
-                    model: 'gemini-3-flash-preview',
-                    contents: prompt,
-                    config: {
-                        systemInstruction: "Você é um Chefe de Oficina Mecânica Sênior no Brasil. Ao listar defeitos, ignore problemas raros. Foque EXCLUSIVAMENTE nos problemas que mais aparecem na oficina para este carro (top of mind issues). Exemplo: Se for um Ford Focus, fale do Câmbio Powershift. Se for um THP, fale da corrente de comando. Se for um Honda Civic, fale da caixa de direção. TRADUZA OS TÍTULOS PARA PORTUGUÊS (Engine -> Motor).",
-                        responseMimeType: "application/json",
-                        responseSchema: responseSchema,
-                        temperature: 0, // Garante factualidade
-                        seed: seed, // Garante consistência
-                    }
-                });
-
-                if (response.text) {
-                    setReportData(JSON.parse(response.text));
+            const response = await ai.models.generateContent({
+                model: 'gemini-3-flash-preview',
+                contents: prompt,
+                config: {
+                    systemInstruction: "Você é um Chefe de Oficina Mecânica Sênior no Brasil. Ao listar defeitos, ignore problemas raros. Foque EXCLUSIVAMENTE nos problemas que mais aparecem na oficina para este carro (top of mind issues). Exemplo: Se for um Ford Focus, fale do Câmbio Powershift. Se for um THP, fale da corrente de comando. Se for um Honda Civic, fale da caixa de direção. TRADUZA OS TÍTULOS PARA PORTUGUÊS (Engine -> Motor).",
+                    responseMimeType: "application/json",
+                    responseSchema: responseSchema,
+                    temperature: 0,
+                    seed: seed,
                 }
-            } catch (err) {
-                setError(true);
-            } finally {
-                setLoading(false);
+            });
+
+            if (response.text) {
+                // Sanitização Robusta do JSON
+                let cleanText = response.text.trim();
+                // Remove marcadores de markdown se existirem (```json e ```)
+                cleanText = cleanText.replace(/^```json\s*/, "").replace(/```$/, "");
+                // Remove qualquer texto antes do primeiro { e depois do último }
+                const firstBrace = cleanText.indexOf('{');
+                const lastBrace = cleanText.lastIndexOf('}');
+                if (firstBrace !== -1 && lastBrace !== -1) {
+                    cleanText = cleanText.substring(firstBrace, lastBrace + 1);
+                }
+
+                try {
+                    const parsedData = JSON.parse(cleanText);
+                    setReportData(parsedData);
+                } catch (parseError) {
+                    console.error("JSON Parse Error:", cleanText);
+                    throw new Error("A IA gerou uma resposta, mas o formato estava incorreto. Tente novamente.");
+                }
+            } else {
+                throw new Error("A IA não retornou nenhum texto.");
             }
-        };
+        } catch (err: any) {
+            console.error("Erro completo:", err);
+            let msg = "Ocorreu um erro desconhecido.";
+            if (err.message) msg = err.message;
+            if (err.toString().includes("429")) msg = "Limite de uso da API excedido (Erro 429). Tente novamente mais tarde.";
+            if (err.toString().includes("403")) msg = "Chave de API inválida ou sem permissão.";
+            setErrorMsg(msg);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
         fetchReport();
     }, [brand, model, year, km, savedReportData]);
 
@@ -278,7 +304,28 @@ const ReportResult: React.FC = () => {
         </div>
     );
 
-    if (error || !reportData) return <div className="p-10 text-center">Erro ao gerar relatório.</div>;
+    if (errorMsg || !reportData) return (
+        <div className="flex flex-col h-screen items-center justify-center p-6 text-center bg-background-light dark:bg-background-dark">
+            <span className="material-symbols-outlined text-6xl text-red-500 mb-4">error_outline</span>
+            <h2 className="text-xl font-bold mb-2 text-slate-900 dark:text-white">Não foi possível gerar o relatório</h2>
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4 rounded-lg max-w-md mb-6">
+                <p className="text-sm text-red-600 dark:text-red-300 font-mono break-words">{errorMsg}</p>
+            </div>
+            <button 
+                onClick={fetchReport}
+                className="px-6 py-3 bg-primary text-white rounded-xl font-bold shadow-lg hover:bg-blue-600 transition-colors flex items-center gap-2"
+            >
+                <span className="material-symbols-outlined">refresh</span>
+                Tentar Novamente
+            </button>
+            <button 
+                onClick={() => navigate(-1)}
+                className="mt-4 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white font-medium"
+            >
+                Voltar
+            </button>
+        </div>
+    );
 
     return (
         <div className="flex flex-col h-full bg-background-light dark:bg-background-dark print:bg-white">
