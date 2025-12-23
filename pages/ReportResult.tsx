@@ -63,7 +63,7 @@ const ReportResult: React.FC = () => {
             "ENGINE SYSTEM": "SISTEMA DO MOTOR",
             "BRAKES": "FREIOS",
             "BRAKE SYSTEM": "SISTEMA DE FREIOS",
-            "SUSPENSÃO": "SUSPENSÃO", // Garantir caso venha correto mas com acento diferente
+            "SUSPENSÃO": "SUSPENSÃO",
             "SUSPENSION": "SUSPENSÃO",
             "SUSPENSION SYSTEM": "SISTEMA DE SUSPENSÃO",
             "TRANSMISSION": "CÂMBIO",
@@ -125,17 +125,27 @@ const ReportResult: React.FC = () => {
 
         Object.keys(replacements).forEach(eng => {
             const pt = replacements[eng];
-            // Regex para substituir apenas palavras inteiras (word boundaries), case insensitive
             const regex = new RegExp(`\\b${eng}\\b`, 'gi');
             translated = translated.replace(regex, pt);
         });
 
-        // Capitaliza a primeira letra caso tenha sido alterada
         if (translated.length > 0) {
             return translated.charAt(0).toUpperCase() + translated.slice(1);
         }
         
         return translated;
+    };
+
+    // Gera um número inteiro único baseado na string do carro para usar como Seed
+    const generateVehicleSeed = (str: string): number => {
+        let hash = 0;
+        if (str.length === 0) return hash;
+        for (let i = 0; i < str.length; i++) {
+            const char = str.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash; // Converte para 32bit integer
+        }
+        return Math.abs(hash);
     };
 
     useEffect(() => {
@@ -151,7 +161,13 @@ const ReportResult: React.FC = () => {
                 if (!apiKey) throw new Error("API Key not found");
 
                 const ai = new GoogleGenAI({ apiKey });
-                const prompt = `Gere um relatório técnico sobre: ${brand} ${model} ano ${year}. ${hasKm ? `KM: ${km}.` : ''} Identifique defeitos crônicos. TRADUZA OS NOMES DOS COMPONENTES E TÍTULOS PARA PORTUGUÊS DO BRASIL.`;
+                
+                // Prompt focado nos problemas MAIS COMUNS
+                const prompt = `Analise o veículo: ${brand} ${model} ano ${year}. ${hasKm ? `KM atual: ${km}.` : ''}
+                
+                Liste os 4 a 6 DEFEITOS CRÔNICOS MAIS COMUNS E FAMOSOS deste modelo no Brasil.
+                Foque naqueles problemas que todo dono reclama ou que mecânicos conhecem bem (vício oculto, desgaste prematuro recorrente).
+                TRADUZA TUDO PARA PORTUGUÊS.`;
 
                 const responseSchema: Schema = {
                     type: Type.OBJECT,
@@ -165,8 +181,8 @@ const ReportResult: React.FC = () => {
                                 type: Type.OBJECT,
                                 properties: {
                                     id: { type: Type.STRING },
-                                    title: { type: Type.STRING, description: "Nome do componente/sistema em PORTUGUÊS (ex: Motor, Suspensão, Freios)" },
-                                    description: { type: Type.STRING },
+                                    title: { type: Type.STRING, description: "Nome do sistema em PORTUGUÊS (ex: Câmbio Powershift, Motor THP, Suspensão Dianteira)" },
+                                    description: { type: Type.STRING, description: "Descrição técnica do problema comum." },
                                     severity: { type: Type.STRING },
                                     frequency: { type: Type.STRING },
                                     icon: { type: Type.STRING }
@@ -203,13 +219,19 @@ const ReportResult: React.FC = () => {
                     required: ["score", "reliabilityTitle", "reliabilityDescription", "defects", "ownerReviews", "expertTips", "sources"]
                 };
 
+                // Seed determinística baseada no veículo
+                const vehicleId = `${brand}-${model}-${year}`.toLowerCase();
+                const seed = generateVehicleSeed(vehicleId);
+
                 const response = await ai.models.generateContent({
                     model: 'gemini-3-flash-preview',
                     contents: prompt,
                     config: {
-                        systemInstruction: "Você é um Especialista Automotivo Brasileiro. Idioma: Português do Brasil. REGRA CRÍTICA DE TRADUÇÃO: NUNCA use termos em inglês nos títulos. Engine = MOTOR. Brakes = FREIOS. Suspension = SUSPENSÃO. Transmission = CÂMBIO. Cooling = ARREFECIMENTO.",
+                        systemInstruction: "Você é um Chefe de Oficina Mecânica Sênior no Brasil. Ao listar defeitos, ignore problemas raros. Foque EXCLUSIVAMENTE nos problemas que mais aparecem na oficina para este carro (top of mind issues). Exemplo: Se for um Ford Focus, fale do Câmbio Powershift. Se for um THP, fale da corrente de comando. Se for um Honda Civic, fale da caixa de direção. TRADUZA OS TÍTULOS PARA PORTUGUÊS (Engine -> Motor).",
                         responseMimeType: "application/json",
-                        responseSchema: responseSchema
+                        responseSchema: responseSchema,
+                        temperature: 0, // Garante factualidade
+                        seed: seed, // Garante consistência
                     }
                 });
 
@@ -341,7 +363,7 @@ const ReportResult: React.FC = () => {
                             <div className="flex items-center justify-between mb-4 px-2">
                                 <h3 className="text-xl font-black flex items-center gap-2 text-slate-900 dark:text-white">
                                     <span className="material-symbols-outlined text-red-500">dangerous</span>
-                                    Problemas Crônicos
+                                    Problemas Crônicos Comuns
                                 </h3>
                                 <span className="text-xs font-bold text-slate-400 uppercase">Alertas IA</span>
                             </div>
