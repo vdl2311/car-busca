@@ -51,6 +51,93 @@ const ReportResult: React.FC = () => {
     const [error, setError] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
 
+    // Helper function to force translation of common technical terms if AI fails
+    const translateTerm = (term: string) => {
+        if (!term) return '';
+        
+        const upper = term.toUpperCase().trim();
+        
+        // Mapeamento direto para termos comuns que a IA pode retornar em inglês
+        const exactMap: Record<string, string> = {
+            "ENGINE": "MOTOR",
+            "ENGINE SYSTEM": "SISTEMA DO MOTOR",
+            "BRAKES": "FREIOS",
+            "BRAKE SYSTEM": "SISTEMA DE FREIOS",
+            "SUSPENSÃO": "SUSPENSÃO", // Garantir caso venha correto mas com acento diferente
+            "SUSPENSION": "SUSPENSÃO",
+            "SUSPENSION SYSTEM": "SISTEMA DE SUSPENSÃO",
+            "TRANSMISSION": "CÂMBIO",
+            "GEARBOX": "CÂMBIO",
+            "ELECTRICAL": "ELÉTRICA",
+            "ELECTRICAL SYSTEM": "SISTEMA ELÉTRICO",
+            "COOLING": "ARREFECIMENTO",
+            "COOLING SYSTEM": "SISTEMA DE ARREFECIMENTO",
+            "STEERING": "DIREÇÃO",
+            "POWER STEERING": "DIREÇÃO HIDRÁULICA",
+            "TIRES": "PNEUS",
+            "WHEELS": "RODAS",
+            "EXHAUST": "ESCAPAMENTO",
+            "FUEL": "COMBUSTÍVEL",
+            "FUEL SYSTEM": "SISTEMA DE COMBUSTÍVEL",
+            "CLUTCH": "EMBREAGEM",
+            "BODY": "CARROCERIA",
+            "OIL": "ÓLEO",
+            "BATTERY": "BATERIA",
+            "TURBO": "TURBINA",
+            "IGNITION": "IGNIÇÃO",
+            "AIR CONDITIONING": "AR CONDICIONADO",
+            "HVAC": "AR CONDICIONADO",
+            "DRIVETRAIN": "TREM DE FORÇA",
+            "SENSORS": "SENSORES"
+        };
+
+        if (exactMap[upper]) return exactMap[upper];
+
+        // Se não for exato, tenta substituir palavras chave dentro da frase
+        let translated = term;
+        
+        const replacements: Record<string, string> = {
+            "Engine": "Motor",
+            "Brakes": "Freios",
+            "Suspension": "Suspensão",
+            "Transmission": "Câmbio",
+            "System": "Sistema",
+            "Cooling": "Arrefecimento",
+            "Steering": "Direção",
+            "Electrical": "Elétrica",
+            "Fuel": "Combustível",
+            "Exhaust": "Escapamento",
+            "Tires": "Pneus",
+            "Leak": "Vazamento",
+            "Failure": "Falha",
+            "Noise": "Ruído",
+            "Pump": "Bomba",
+            "Sensor": "Sensor",
+            "Module": "Módulo",
+            "Control": "Controle",
+            "Unit": "Unidade",
+            "Filter": "Filtro",
+            "Belt": "Correia",
+            "Chain": "Corrente",
+            "Fluid": "Fluido",
+            "Oil": "Óleo"
+        };
+
+        Object.keys(replacements).forEach(eng => {
+            const pt = replacements[eng];
+            // Regex para substituir apenas palavras inteiras (word boundaries), case insensitive
+            const regex = new RegExp(`\\b${eng}\\b`, 'gi');
+            translated = translated.replace(regex, pt);
+        });
+
+        // Capitaliza a primeira letra caso tenha sido alterada
+        if (translated.length > 0) {
+            return translated.charAt(0).toUpperCase() + translated.slice(1);
+        }
+        
+        return translated;
+    };
+
     useEffect(() => {
         const fetchReport = async () => {
             if (savedReportData) {
@@ -64,7 +151,7 @@ const ReportResult: React.FC = () => {
                 if (!apiKey) throw new Error("API Key not found");
 
                 const ai = new GoogleGenAI({ apiKey });
-                const prompt = `Gere um relatório técnico detalhado em PORTUGUÊS DO BRASIL sobre o veículo: ${brand} ${model} ano ${year}. ${hasKm ? `Quilometragem: ${km} km.` : ''} Liste 3-5 defeitos crônicos, avaliações de donos e dicas de especialistas.`;
+                const prompt = `Gere um relatório técnico sobre: ${brand} ${model} ano ${year}. ${hasKm ? `KM: ${km}.` : ''} Identifique defeitos crônicos. TRADUZA OS NOMES DOS COMPONENTES E TÍTULOS PARA PORTUGUÊS DO BRASIL.`;
 
                 const responseSchema: Schema = {
                     type: Type.OBJECT,
@@ -78,7 +165,7 @@ const ReportResult: React.FC = () => {
                                 type: Type.OBJECT,
                                 properties: {
                                     id: { type: Type.STRING },
-                                    title: { type: Type.STRING, description: "Nome do defeito ou componente em PORTUGUÊS (ex: Motor, Câmbio, Freios)" },
+                                    title: { type: Type.STRING, description: "Nome do componente/sistema em PORTUGUÊS (ex: Motor, Suspensão, Freios)" },
                                     description: { type: Type.STRING },
                                     severity: { type: Type.STRING },
                                     frequency: { type: Type.STRING },
@@ -120,7 +207,7 @@ const ReportResult: React.FC = () => {
                     model: 'gemini-3-flash-preview',
                     contents: prompt,
                     config: {
-                        systemInstruction: "Você é um Especialista Automotivo. Responda APENAS JSON. IMPORTANTE: Todos os títulos de defeitos crônicos DEVEM estar em Português do Brasil. NUNCA use 'Engine', use 'Motor'. NUNCA use 'Brakes', use 'Freios'. NUNCA use 'Suspension', use 'Suspensão'.",
+                        systemInstruction: "Você é um Especialista Automotivo Brasileiro. Idioma: Português do Brasil. REGRA CRÍTICA DE TRADUÇÃO: NUNCA use termos em inglês nos títulos. Engine = MOTOR. Brakes = FREIOS. Suspension = SUSPENSÃO. Transmission = CÂMBIO. Cooling = ARREFECIMENTO.",
                         responseMimeType: "application/json",
                         responseSchema: responseSchema
                     }
@@ -261,15 +348,15 @@ const ReportResult: React.FC = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {reportData.defects.map((defect) => (
                                     <div key={defect.id} className="bg-white dark:bg-surface-dark border border-gray-200 dark:border-gray-800 rounded-3xl p-5 hover:border-primary/50 transition-colors group">
-                                        <div className="flex items-start justify-between mb-3">
-                                            <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded-2xl text-slate-700 dark:text-white group-hover:bg-primary group-hover:text-white transition-colors">
-                                                <span className="material-symbols-outlined text-[28px]">{defect.icon}</span>
-                                            </div>
+                                        <div className="flex items-start justify-end mb-3">
                                             <div className={`px-2 py-1 rounded-lg border text-[10px] font-black uppercase ${getSeverityColor(defect.severity)}`}>
                                                 Risco {defect.severity}
                                             </div>
                                         </div>
-                                        <h4 className="text-lg font-black mb-1 text-slate-900 dark:text-white uppercase tracking-tight">{defect.title}</h4>
+                                        {/* Translation forced here */}
+                                        <h4 className="text-lg font-black mb-1 text-slate-900 dark:text-white uppercase tracking-tight">
+                                            {translateTerm(defect.title)}
+                                        </h4>
                                         <p className="text-sm text-slate-700 dark:text-gray-200 leading-relaxed font-medium">{defect.description}</p>
                                         <div className="mt-4 pt-3 border-t border-gray-50 dark:border-gray-800 flex items-center gap-2">
                                             <span className="text-[10px] font-bold text-slate-400 uppercase">Frequência:</span>
