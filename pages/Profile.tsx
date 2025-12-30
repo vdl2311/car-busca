@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppRoute } from '../types';
@@ -24,6 +25,9 @@ const Profile: React.FC = () => {
     useEffect(() => {
         const fetchHistory = async () => {
             if (!user) return;
+            let combined: SavedReport[] = [];
+
+            // 1. Fetch from Supabase
             try {
                 const { data, error } = await supabase
                     .from('reports')
@@ -32,15 +36,33 @@ const Profile: React.FC = () => {
                     .order('created_at', { ascending: false });
 
                 if (error) {
-                    console.error("Error fetching history:", error);
-                } else {
-                    setHistory(data || []);
+                    console.error("Error fetching history from Supabase:", error);
+                } else if (data) {
+                    combined = [...data];
                 }
             } catch (err) {
                 console.error(err);
-            } finally {
-                setLoadingHistory(false);
             }
+
+            // 2. Fetch from LocalStorage
+            try {
+                const localDataString = localStorage.getItem('local_reports');
+                if (localDataString) {
+                    const localData = JSON.parse(localDataString);
+                    // Filter for current user to avoid showing other users' data on shared device
+                    const userLocalData = localData.filter((item: any) => item.user_id === user.id);
+                    // Merge avoiding duplicates (optional, based on ID if we sync later)
+                    combined = [...combined, ...userLocalData];
+                }
+            } catch (e) { 
+                console.error("Error reading from localStorage:", e); 
+            }
+
+            // Sort combined history by date (newest first)
+            combined.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+            setHistory(combined);
+            setLoadingHistory(false);
         };
 
         fetchHistory();
@@ -74,8 +96,12 @@ const Profile: React.FC = () => {
     };
 
     const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date);
+        try {
+            const date = new Date(dateString);
+            return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date);
+        } catch (e) {
+            return 'Data inválida';
+        }
     };
 
     return (
@@ -146,14 +172,15 @@ const Profile: React.FC = () => {
                         <div className="space-y-3">
                             {history.map((item) => {
                                 const isChat = item.report_data?.type === 'chat';
+                                const isLocal = item.id.startsWith('local-');
                                 return (
                                     <div 
                                         key={item.id} 
                                         onClick={() => handleOpenHistoryItem(item)}
-                                        className="bg-white dark:bg-surface-dark p-3 rounded-xl shadow-sm border border-gray-100 dark:border-transparent flex items-center gap-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-surface-highlight transition-colors"
+                                        className="bg-white dark:bg-surface-dark p-3 rounded-xl shadow-sm border border-gray-100 dark:border-transparent flex items-center gap-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-surface-highlight transition-colors group"
                                     >
                                         {/* Icon/Score Box */}
-                                        <div className={`shrink-0 w-12 h-12 rounded-lg flex items-center justify-center font-bold text-white text-lg ${
+                                        <div className={`shrink-0 w-12 h-12 rounded-lg flex items-center justify-center font-bold text-white text-lg relative ${
                                             isChat 
                                                 ? 'bg-blue-500' 
                                                 : item.score >= 7 ? 'bg-green-500' : item.score >= 5 ? 'bg-yellow-500' : 'bg-red-500'
@@ -162,6 +189,11 @@ const Profile: React.FC = () => {
                                                 <span className="material-symbols-outlined">smart_toy</span>
                                             ) : (
                                                 item.score
+                                            )}
+                                            {isLocal && (
+                                                <div className="absolute -bottom-1 -right-1 bg-gray-500 rounded-full w-4 h-4 flex items-center justify-center border border-white dark:border-surface-dark" title="Salvo localmente">
+                                                    <span className="material-symbols-outlined text-[10px]">cloud_off</span>
+                                                </div>
                                             )}
                                         </div>
                                         
@@ -178,7 +210,7 @@ const Profile: React.FC = () => {
                                                     : `${formatDate(item.created_at)}`}
                                             </p>
                                         </div>
-                                        <span className="material-symbols-outlined text-gray-400">chevron_right</span>
+                                        <span className="material-symbols-outlined text-gray-400 group-hover:translate-x-1 transition-transform">chevron_right</span>
                                     </div>
                                 );
                             })}

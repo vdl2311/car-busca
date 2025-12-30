@@ -31,7 +31,8 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const showBottomNav = [
         AppRoute.HOME,
         AppRoute.PROFILE,
-        AppRoute.REPORT_RESULT
+        AppRoute.REPORT_RESULT,
+        AppRoute.REPORT_ISSUE
     ].includes(location.pathname as AppRoute);
 
     return (

@@ -9,7 +9,7 @@ import { useAuth } from '../contexts/AuthContext';
 interface ExpertTip {
     title: string;
     content: string;
-    priority: 'Alta' | 'Média' | 'Baixa';
+    priority: 'Máxima' | 'Alta' | 'Média' | 'Baixa';
 }
 
 interface OwnerReview {
@@ -42,8 +42,8 @@ const ReportResult: React.FC = () => {
     const location = useLocation();
     const { user } = useAuth();
     
-    const { brand, model, year, km, savedReportData } = location.state || { brand: 'Veículo', model: 'Demo', year: '2024', km: '' };
-    const vehicleTitle = `${brand} ${model} ${year}`;
+    const { brand, model, version, year, km, savedReportData } = location.state || { brand: 'Veículo', model: 'Demo', version: '', year: '2024', km: '' };
+    const vehicleTitle = `${brand} ${model} ${version} ${year}`.trim();
     const hasKm = km && km.toString().trim() !== '' && km !== '0';
     
     const [reportData, setReportData] = useState<ReportData | null>(null);
@@ -51,124 +51,37 @@ const ReportResult: React.FC = () => {
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [isSaving, setIsSaving] = useState(false);
 
-    // Helper function to force translation of common technical terms if AI fails
     const translateTerm = (term: string) => {
         if (!term) return '';
-        
         const upper = term.toUpperCase().trim();
-        
         const exactMap: Record<string, string> = {
-            "ENGINE": "MOTOR",
-            "ENGINE SYSTEM": "SISTEMA DO MOTOR",
-            "BRAKES": "FREIOS",
-            "BRAKE SYSTEM": "SISTEMA DE FREIOS",
-            "SUSPENSÃO": "SUSPENSÃO",
-            "SUSPENSION": "SUSPENSÃO",
-            "SUSPENSION SYSTEM": "SISTEMA DE SUSPENSÃO",
-            "TRANSMISSION": "CÂMBIO",
-            "GEARBOX": "CÂMBIO",
-            "ELECTRICAL": "ELÉTRICA",
-            "ELECTRICAL SYSTEM": "SISTEMA ELÉTRICO",
-            "COOLING": "ARREFECIMENTO",
-            "COOLING SYSTEM": "SISTEMA DE ARREFECIMENTO",
-            "STEERING": "DIREÇÃO",
-            "POWER STEERING": "DIREÇÃO HIDRÁULICA",
-            "TIRES": "PNEUS",
-            "WHEELS": "RODAS",
-            "EXHAUST": "ESCAPAMENTO",
-            "FUEL": "COMBUSTÍVEL",
-            "FUEL SYSTEM": "SISTEMA DE COMBUSTÍVEL",
-            "CLUTCH": "EMBREAGEM",
-            "BODY": "CARROCERIA",
-            "OIL": "ÓLEO",
-            "BATTERY": "BATERIA",
-            "TURBO": "TURBINA",
-            "IGNITION": "IGNIÇÃO",
-            "AIR CONDITIONING": "AR CONDICIONADO",
-            "HVAC": "AR CONDICIONADO",
-            "DRIVETRAIN": "TREM DE FORÇA",
-            "SENSORS": "SENSORES"
+            "ENGINE": "MOTOR", "BRAKES": "FREIOS", "SUSPENSION": "SUSPENSÃO", "TRANSMISSION": "CÂMBIO",
+            "ELECTRICAL": "ELÉTRICA", "COOLING": "ARREFECIMENTO", "STEERING": "DIREÇÃO", "FUEL": "COMBUSTÍVEL"
         };
-
         if (exactMap[upper]) return exactMap[upper];
-
         let translated = term;
         const replacements: Record<string, string> = {
-            "Engine": "Motor",
-            "Brakes": "Freios",
-            "Suspension": "Suspensão",
-            "Transmission": "Câmbio",
-            "System": "Sistema",
-            "Cooling": "Arrefecimento",
-            "Steering": "Direção",
-            "Electrical": "Elétrica",
-            "Fuel": "Combustível",
-            "Exhaust": "Escapamento",
-            "Tires": "Pneus",
-            "Leak": "Vazamento",
-            "Failure": "Falha",
-            "Noise": "Ruído",
-            "Pump": "Bomba",
-            "Sensor": "Sensor",
-            "Module": "Módulo",
-            "Control": "Controle",
-            "Unit": "Unidade",
-            "Filter": "Filtro",
-            "Belt": "Correia",
-            "Chain": "Corrente",
-            "Fluid": "Fluido",
-            "Oil": "Óleo"
+            "Engine": "Motor", "Brakes": "Freios", "Suspension": "Suspensão", "Transmission": "Câmbio",
+            "Cooling": "Arrefecimento", "Steering": "Direção", "Electrical": "Elétrica"
         };
-
         Object.keys(replacements).forEach(eng => {
-            const pt = replacements[eng];
-            const regex = new RegExp(`\\b${eng}\\b`, 'gi');
-            translated = translated.replace(regex, pt);
+            translated = translated.replace(new RegExp(`\\b${eng}\\b`, 'gi'), replacements[eng]);
         });
-
-        if (translated.length > 0) {
-            return translated.charAt(0).toUpperCase() + translated.slice(1);
-        }
-        
-        return translated;
-    };
-
-    const generateVehicleSeed = (str: string): number => {
-        let hash = 0;
-        if (str.length === 0) return hash;
-        for (let i = 0; i < str.length; i++) {
-            const char = str.charCodeAt(i);
-            hash = ((hash << 5) - hash) + char;
-            hash = hash & hash;
-        }
-        return Math.abs(hash);
+        return translated.charAt(0).toUpperCase() + translated.slice(1);
     };
 
     const fetchReport = async () => {
         setLoading(true);
         setErrorMsg(null);
-
-        if (savedReportData) {
-            setReportData(savedReportData);
-            setLoading(false);
-            return;
-        }
+        if (savedReportData) { setReportData(savedReportData); setLoading(false); return; }
 
         try {
             const apiKey = process.env.API_KEY;
-            
-            // Verificação explícita da chave
-            if (!apiKey || apiKey.includes("undefined")) {
-                throw new Error("Chave de API (API_KEY) não encontrada nas Variáveis de Ambiente do Vercel.");
-            }
+            if (!apiKey) throw new Error("API_KEY não configurada.");
 
             const ai = new GoogleGenAI({ apiKey });
-            
-            const prompt = `Analise o veículo: ${brand} ${model} ano ${year}. ${hasKm ? `KM atual: ${km}.` : ''}
-            
-            Liste os 4 a 6 DEFEITOS CRÔNICOS MAIS COMUNS E FAMOSOS deste modelo no Brasil.
-            Foque naqueles problemas que todo dono reclama ou que mecânicos conhecem bem (vício oculto, desgaste prematuro recorrente).
-            TRADUZA TUDO PARA PORTUGUÊS.`;
+            const prompt = `Analise o veículo: ${brand} ${model} ${version} ano ${year}. ${hasKm ? `KM: ${km}.` : ''} 
+            Foque nos problemas crônicos específicos desta versão e motorização. TRADUZA TUDO PARA PORTUGUÊS.`;
 
             const responseSchema: Schema = {
                 type: Type.OBJECT,
@@ -182,8 +95,8 @@ const ReportResult: React.FC = () => {
                             type: Type.OBJECT,
                             properties: {
                                 id: { type: Type.STRING },
-                                title: { type: Type.STRING, description: "Nome do sistema em PORTUGUÊS (ex: Câmbio Powershift, Motor THP, Suspensão Dianteira)" },
-                                description: { type: Type.STRING, description: "Descrição técnica do problema comum." },
+                                title: { type: Type.STRING },
+                                description: { type: Type.STRING },
                                 severity: { type: Type.STRING },
                                 frequency: { type: Type.STRING },
                                 icon: { type: Type.STRING }
@@ -191,295 +104,213 @@ const ReportResult: React.FC = () => {
                             required: ["id", "title", "description", "severity", "frequency", "icon"]
                         }
                     },
-                    ownerReviews: {
-                        type: Type.ARRAY,
-                        items: {
-                            type: Type.OBJECT,
-                            properties: {
-                                userLabel: { type: Type.STRING },
-                                quote: { type: Type.STRING },
-                                sentiment: { type: Type.STRING }
-                            },
-                            required: ["userLabel", "quote", "sentiment"]
-                        }
-                    },
-                    expertTips: {
-                        type: Type.ARRAY,
-                        items: {
-                            type: Type.OBJECT,
-                            properties: {
-                                title: { type: Type.STRING },
-                                content: { type: Type.STRING },
-                                priority: { type: Type.STRING }
-                            },
-                            required: ["title", "content", "priority"]
-                        }
-                    },
+                    ownerReviews: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { userLabel: { type: Type.STRING }, quote: { type: Type.STRING }, sentiment: { type: Type.STRING } } } },
+                    expertTips: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { title: { type: Type.STRING }, content: { type: Type.STRING }, priority: { type: Type.STRING } } } },
                     sources: { type: Type.ARRAY, items: { type: Type.STRING } }
                 },
                 required: ["score", "reliabilityTitle", "reliabilityDescription", "defects", "ownerReviews", "expertTips", "sources"]
             };
 
-            const vehicleId = `${brand}-${model}-${year}`.toLowerCase();
-            const seed = generateVehicleSeed(vehicleId);
-
             const response = await ai.models.generateContent({
                 model: 'gemini-3-flash-preview',
                 contents: prompt,
                 config: {
-                    systemInstruction: "Você é um Chefe de Oficina Mecânica Sênior no Brasil. Ao listar defeitos, ignore problemas raros. Foque EXCLUSIVAMENTE nos problemas que mais aparecem na oficina para este carro (top of mind issues). Exemplo: Se for um Ford Focus, fale do Câmbio Powershift. Se for um THP, fale da corrente de comando. Se for um Honda Civic, fale da caixa de direção. TRADUZA OS TÍTULOS PARA PORTUGUÊS (Engine -> Motor).",
+                    systemInstruction: "Você é um Especialista Automotivo Sênior. Use Português do Brasil. Nas dicas de manutenção, atribua prioridade 'Máxima', 'Alta' ou 'Média'.",
                     responseMimeType: "application/json",
                     responseSchema: responseSchema,
-                    temperature: 0,
-                    seed: seed,
                 }
             });
 
             if (response.text) {
-                // Sanitização Robusta do JSON
-                let cleanText = response.text.trim();
-                // Remove marcadores de markdown se existirem (```json e ```)
-                cleanText = cleanText.replace(/^```json\s*/, "").replace(/```$/, "");
-                // Remove qualquer texto antes do primeiro { e depois do último }
-                const firstBrace = cleanText.indexOf('{');
-                const lastBrace = cleanText.lastIndexOf('}');
-                if (firstBrace !== -1 && lastBrace !== -1) {
-                    cleanText = cleanText.substring(firstBrace, lastBrace + 1);
-                }
-
-                try {
-                    const parsedData = JSON.parse(cleanText);
-                    setReportData(parsedData);
-                } catch (parseError) {
-                    console.error("JSON Parse Error:", cleanText);
-                    throw new Error("A IA gerou uma resposta, mas o formato estava incorreto. Tente novamente.");
-                }
-            } else {
-                throw new Error("A IA não retornou nenhum texto.");
+                setReportData(JSON.parse(response.text));
             }
         } catch (err: any) {
-            console.error("Erro completo:", err);
-            let msg = "Ocorreu um erro desconhecido.";
-            if (err.message) msg = err.message;
-            if (err.toString().includes("429")) msg = "Limite de uso da API excedido (Erro 429). Tente novamente mais tarde.";
-            if (err.toString().includes("403")) msg = "Chave de API inválida ou sem permissão.";
-            setErrorMsg(msg);
+            setErrorMsg(err.message || "Erro ao gerar relatório.");
         } finally {
             setLoading(false);
         }
     };
 
-    useEffect(() => {
-        fetchReport();
-    }, [brand, model, year, km, savedReportData]);
-
-    const handlePrint = () => window.print();
+    useEffect(() => { fetchReport(); }, [brand, model, version, year, km, savedReportData]);
 
     const handleSave = async () => {
         if (!reportData || isSaving || !user) return;
         setIsSaving(true);
         try {
             await supabase.from('reports').insert({
-                user_id: user.id, brand, model, year, km, score: reportData.score, report_data: reportData
+                user_id: user.id, brand, model, version, year, km, score: reportData.score, report_data: reportData
             });
-            alert("Salvo com sucesso!");
-        } catch (e) {
-            console.error(e);
-        } finally {
-            setIsSaving(false);
-        }
+            alert("Relatório salvo no seu perfil!");
+        } catch (e) { console.error(e); } finally { setIsSaving(false); }
     };
 
-    const getSeverityColor = (severity: string) => {
-        const s = severity?.toLowerCase() || '';
-        if (s.includes('alta')) return 'bg-red-500/10 text-red-600 border-red-200';
-        if (s.includes('média') || s.includes('media')) return 'bg-orange-500/10 text-orange-600 border-orange-200';
-        return 'bg-blue-500/10 text-blue-600 border-blue-200';
+    const handleExportPDF = () => {
+        window.print();
     };
 
     if (loading) return (
-        <div className="flex flex-col h-screen items-center justify-center p-6 bg-background-light dark:bg-background-dark">
+        <div className="flex flex-col h-screen items-center justify-center p-6 bg-background-dark text-white">
             <span className="material-symbols-outlined text-6xl text-primary animate-spin">progress_activity</span>
-            <p className="mt-4 font-bold">Gerando análise técnica...</p>
+            <p className="mt-6 text-xl font-bold">Gerando relatório técnico...</p>
         </div>
     );
 
     if (errorMsg || !reportData) return (
-        <div className="flex flex-col h-screen items-center justify-center p-6 text-center bg-background-light dark:bg-background-dark">
-            <span className="material-symbols-outlined text-6xl text-red-500 mb-4">error_outline</span>
-            <h2 className="text-xl font-bold mb-2 text-slate-900 dark:text-white">Não foi possível gerar o relatório</h2>
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4 rounded-lg max-w-md mb-6">
-                <p className="text-sm text-red-600 dark:text-red-300 font-mono break-words">{errorMsg}</p>
-            </div>
-            <button 
-                onClick={fetchReport}
-                className="px-6 py-3 bg-primary text-white rounded-xl font-bold shadow-lg hover:bg-blue-600 transition-colors flex items-center gap-2"
-            >
-                <span className="material-symbols-outlined">refresh</span>
-                Tentar Novamente
-            </button>
-            <button 
-                onClick={() => navigate(-1)}
-                className="mt-4 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white font-medium"
-            >
-                Voltar
-            </button>
+        <div className="flex flex-col h-screen items-center justify-center p-6 text-center bg-background-dark">
+            <h2 className="text-2xl font-bold mb-4 text-white">Erro ao gerar relatório</h2>
+            <p className="text-red-500 mb-6 text-lg">{errorMsg}</p>
+            <button onClick={fetchReport} className="px-8 py-4 bg-primary text-white rounded-xl font-bold text-lg">Tentar Novamente</button>
         </div>
     );
 
     return (
-        <div className="flex flex-col h-full bg-background-light dark:bg-background-dark print:bg-white">
-            {/* Header Area - Compact */}
-            <header className="sticky top-0 z-30 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 p-4 md:px-8 print:hidden">
+        <div className="flex flex-col h-full bg-background-dark text-white overflow-x-hidden">
+            <style>
+                {`
+                @media print {
+                    @page { margin: 1.5cm; }
+                    /* Forçar reset de height para impressão */
+                    html, body, #root, .flex-1, main { 
+                        height: auto !important; 
+                        overflow: visible !important; 
+                        display: block !important;
+                        position: static !important;
+                    }
+                    body { background: white !important; color: black !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                    .no-print { display: none !important; visibility: hidden !important; }
+                    main { padding: 0 !important; width: 100% !important; max-width: none !important; margin: 0 !important; }
+                    .bg-surface-dark { background: #fdfdfd !important; border: 1px solid #e2e8f0 !important; color: black !important; box-shadow: none !important; border-radius: 12px !important; }
+                    .text-white { color: black !important; }
+                    .text-slate-400, .text-slate-500, .text-slate-300 { color: #4a5568 !important; }
+                    .border-gray-800, .border-white\/5 { border-color: #e2e8f0 !important; }
+                    section { break-inside: avoid; margin-bottom: 2rem !important; }
+                    .text-primary { color: #135bec !important; }
+                    .bg-primary { background: #135bec !important; color: white !important; }
+                }
+                `}
+            </style>
+
+            <header className="sticky top-0 z-30 bg-background-dark/95 backdrop-blur-md border-b border-gray-800 p-5 md:px-10 no-print">
                 <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-4">
-                        <button onClick={() => navigate(-1)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full">
-                            <span className="material-symbols-outlined">arrow_back</span>
+                    <div className="flex items-center gap-5">
+                        <button onClick={() => navigate(-1)} className="p-3 hover:bg-gray-800 rounded-full transition-colors text-white">
+                            <span className="material-symbols-outlined text-[28px]">arrow_back</span>
                         </button>
-                        <div>
-                            <h1 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white leading-none">{vehicleTitle}</h1>
-                            <p className="text-xs text-slate-500 mt-1 uppercase font-bold tracking-wider">
-                                {hasKm ? `${km} KM Rodados` : 'Análise Geral'} • Consultoria IA
+                        <div className="hidden xs:block">
+                            <h1 className="text-xl md:text-3xl font-bold text-white leading-tight truncate max-w-[200px] md:max-w-none">{vehicleTitle}</h1>
+                            <p className="text-[10px] md:text-sm text-slate-400 mt-1 uppercase font-bold tracking-widest">
+                                {hasKm ? `${km} KM` : 'Análise Geral'} • Consultoria IA
                             </p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                         <button onClick={handlePrint} className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-100 dark:bg-surface-dark font-bold text-sm">
-                            <span className="material-symbols-outlined text-[20px]">print</span>
-                            PDF
+                    <div className="flex gap-2 sm:gap-3">
+                        <button 
+                            onClick={handleExportPDF}
+                            className="flex items-center gap-2 px-4 sm:px-6 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold transition-all active:scale-95"
+                        >
+                            <span className="material-symbols-outlined text-[20px]">picture_as_pdf</span>
+                            <span className="hidden sm:inline">PDF</span>
                         </button>
-                        <button onClick={handleSave} disabled={isSaving || !!savedReportData} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-white font-bold text-sm shadow-lg shadow-primary/20 hover:scale-105 transition-transform disabled:opacity-50">
-                            <span className="material-symbols-outlined text-[20px]">save</span>
-                            {isSaving ? 'Salvando...' : 'Salvar'}
+                        <button onClick={handleSave} disabled={isSaving || !!savedReportData} className="px-4 sm:px-6 py-3 rounded-xl bg-primary text-white font-bold text-base disabled:opacity-50 transition-all shadow-lg shadow-primary/20 active:scale-95">
+                            {isSaving ? '...' : 'Salvar'}
                         </button>
                     </div>
                 </div>
             </header>
 
-            {/* Main Content Dashboard */}
-            <main className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full print:p-0">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 print:block">
+            <main className="flex-1 p-4 md:p-10 max-w-2xl mx-auto w-full">
+                <div className="flex flex-col gap-10">
                     
-                    {/* Column 1: Score & Summary (4/12) */}
-                    <aside className="lg:col-span-4 flex flex-col gap-6 print:mb-8">
-                        {/* Score Card */}
-                        <div className="bg-slate-900 dark:bg-surface-dark rounded-3xl p-6 text-white shadow-xl relative overflow-hidden group">
-                            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
-                                <span className="material-symbols-outlined text-6xl">verified</span>
-                            </div>
-                            <div className="relative z-10 text-center">
-                                <span className="text-xs font-black uppercase tracking-[0.2em] opacity-60">Confiabilidade</span>
-                                <div className="flex items-center justify-center gap-1 my-2">
-                                    <span className={`text-7xl font-black tracking-tighter ${reportData.score >= 7 ? 'text-green-400' : reportData.score >= 5 ? 'text-yellow-400' : 'text-red-400'}`}>
-                                        {reportData.score}
-                                    </span>
-                                    <span className="text-2xl opacity-40 font-bold mt-6">/10</span>
-                                </div>
-                                <h3 className="text-xl font-bold mb-2">{reportData.reliabilityTitle}</h3>
-                                <p className="text-sm text-slate-400 leading-relaxed px-4">{reportData.reliabilityDescription}</p>
-                            </div>
+                    {/* Lateral Score and Info */}
+                    <div className="bg-surface-dark rounded-[2.5rem] p-10 text-center shadow-2xl border border-white/5">
+                        <span className="text-sm font-bold uppercase tracking-[0.2em] opacity-60">Nota Técnica</span>
+                        <div className="flex items-center justify-center gap-1 my-4">
+                            <span className={`text-8xl font-bold ${reportData.score >= 7 ? 'text-green-400' : reportData.score >= 5 ? 'text-yellow-400' : 'text-red-400'}`}>
+                                {reportData.score}
+                            </span>
+                            <span className="text-3xl opacity-40 font-bold mt-8">/10</span>
                         </div>
-
-                        {/* Owner Reviews */}
-                        <div className="flex flex-col gap-4">
-                            <h3 className="text-lg font-bold flex items-center gap-2 px-2 text-slate-900 dark:text-white">
-                                <span className="material-symbols-outlined text-primary">forum</span>
-                                Feedback de Donos
-                            </h3>
-                            <div className="grid grid-cols-1 gap-3">
-                                {reportData.ownerReviews.slice(0, 3).map((review, i) => (
-                                    <div key={i} className="bg-white dark:bg-surface-dark p-4 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <div className="w-6 h-6 rounded-full bg-slate-200 dark:bg-gray-700 flex items-center justify-center text-[10px] font-bold uppercase">
-                                                {review.userLabel.charAt(0)}
-                                            </div>
-                                            <span className="text-xs font-bold text-slate-500">{review.userLabel}</span>
-                                        </div>
-                                        <p className="text-sm text-slate-700 dark:text-slate-300 italic leading-snug font-medium">"{review.quote}"</p>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </aside>
-
-                    {/* Column 2: Defects & Tips (8/12) */}
-                    <div className="lg:col-span-8 flex flex-col gap-8 print:block">
-                        
-                        {/* Section: Chronic Defects */}
-                        <section>
-                            <div className="flex items-center justify-between mb-4 px-2">
-                                <h3 className="text-xl font-black flex items-center gap-2 text-slate-900 dark:text-white">
-                                    <span className="material-symbols-outlined text-red-500">dangerous</span>
-                                    Problemas Crônicos Comuns
-                                </h3>
-                                <span className="text-xs font-bold text-slate-400 uppercase">Alertas IA</span>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {reportData.defects.map((defect) => (
-                                    <div key={defect.id} className="bg-white dark:bg-surface-dark border border-gray-200 dark:border-gray-800 rounded-3xl p-5 hover:border-primary/50 transition-colors group">
-                                        <div className="flex items-start justify-end mb-3">
-                                            <div className={`px-2 py-1 rounded-lg border text-[10px] font-black uppercase ${getSeverityColor(defect.severity)}`}>
-                                                Risco {defect.severity}
-                                            </div>
-                                        </div>
-                                        {/* Translation forced here */}
-                                        <h4 className="text-lg font-black mb-1 text-slate-900 dark:text-white uppercase tracking-tight">
-                                            {translateTerm(defect.title)}
-                                        </h4>
-                                        <p className="text-sm text-slate-700 dark:text-gray-200 leading-relaxed font-medium">{defect.description}</p>
-                                        <div className="mt-4 pt-3 border-t border-gray-50 dark:border-gray-800 flex items-center gap-2">
-                                            <span className="text-[10px] font-bold text-slate-400 uppercase">Frequência:</span>
-                                            <span className="text-[10px] font-bold text-slate-800 dark:text-slate-200">{defect.frequency}</span>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </section>
-
-                        {/* Section: Expert Tips - HIGH CLARITY */}
-                        <section className="bg-white dark:bg-surface-dark rounded-[2.5rem] border border-gray-200 dark:border-gray-800 overflow-hidden shadow-lg">
-                            <div className="bg-slate-50 dark:bg-gray-800/80 p-6 border-b border-gray-100 dark:border-gray-700">
-                                <h3 className="text-xl font-black flex items-center gap-2 text-slate-900 dark:text-white">
-                                    <span className="material-symbols-outlined text-primary">verified_user</span>
-                                    Plano de Manutenção Preventiva
-                                </h3>
-                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-bold">Orientações sugeridas por nossa inteligência técnica</p>
-                            </div>
-                            <div className="p-6 grid grid-cols-1 gap-6">
-                                {reportData.expertTips.map((tip, idx) => (
-                                    <div key={idx} className="flex gap-5 items-start p-5 rounded-2xl bg-slate-100/50 dark:bg-gray-800/40 border border-slate-200 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-800 transition-all shadow-sm">
-                                        <div className={`mt-1 size-12 shrink-0 rounded-xl flex items-center justify-center border-2 ${tip.priority === 'Alta' ? 'border-red-500 bg-red-500/10 text-red-500' : 'border-primary bg-primary/10 text-primary'}`}>
-                                            <span className="material-symbols-outlined text-[28px]">build</span>
-                                        </div>
-                                        <div className="flex-1">
-                                            <h4 className="font-black text-lg text-slate-900 dark:text-white mb-2 tracking-tight">{tip.title}</h4>
-                                            <p className="text-sm text-slate-800 dark:text-slate-100 leading-relaxed font-semibold">
-                                                {tip.content}
-                                            </p>
-                                            <div className="mt-3 flex items-center gap-2">
-                                                <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-full ${tip.priority === 'Alta' ? 'bg-red-500 text-white' : 'bg-primary text-white'}`}>
-                                                    Prioridade {tip.priority}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                            <div className="p-4 bg-slate-100 dark:bg-gray-900/50 text-center border-t border-gray-200 dark:border-gray-800">
-                                <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-black tracking-widest">
-                                    Fontes Técnicas: {reportData.sources.join(' • ')}
-                                </p>
-                            </div>
-                        </section>
-
+                        <h3 className="text-2xl font-bold mb-3">{reportData.reliabilityTitle}</h3>
+                        <p className="text-base text-slate-400 leading-relaxed font-medium">{reportData.reliabilityDescription}</p>
                     </div>
+
+                    {/* PREVENTIVE MAINTENANCE SECTION */}
+                    <section className="flex flex-col gap-6">
+                        <div className="flex flex-col gap-3 px-2">
+                            <div className="flex items-center gap-3">
+                                <span className="material-symbols-outlined text-primary text-[28px] font-bold">verified_user</span>
+                                <h3 className="text-2xl font-bold text-white tracking-tight">Plano de Manutenção</h3>
+                            </div>
+                            <p className="text-base text-slate-500 font-medium">Orientações sugeridas por nossa inteligência técnica</p>
+                        </div>
+                        
+                        <div className="flex flex-col gap-5">
+                            {reportData.expertTips.map((tip, idx) => {
+                                const isMaxPriority = tip.priority === 'Máxima';
+                                const isHighPriority = tip.priority === 'Alta' || isMaxPriority;
+                                
+                                return (
+                                    <div key={idx} className="bg-surface-dark rounded-[2rem] p-7 md:p-8 flex flex-col gap-6 shadow-xl border border-white/5">
+                                        <div className="flex gap-5 items-start">
+                                            <div className={`w-14 h-14 shrink-0 rounded-2xl flex items-center justify-center border-2 ${
+                                                isMaxPriority 
+                                                ? 'bg-primary/10 border-primary/40 text-primary shadow-[0_0_15px_rgba(19,91,236,0.1)]' 
+                                                : isHighPriority
+                                                ? 'bg-red-500/10 border-red-500/40 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.1)]'
+                                                : 'bg-slate-500/10 border-slate-500/40 text-slate-500'
+                                            }`}>
+                                                <span className="material-symbols-outlined text-[28px] font-bold">build</span>
+                                            </div>
+                                            
+                                            <div className="flex flex-col gap-4 flex-1">
+                                                <h4 className="text-2xl font-bold text-white leading-snug tracking-tight">
+                                                    {tip.title}
+                                                </h4>
+                                                <p className="text-lg text-slate-400 leading-relaxed font-medium">
+                                                    {tip.content}
+                                                </p>
+                                                
+                                                <div className="mt-2">
+                                                    <span className={`inline-flex px-6 py-2.5 rounded-full text-xs font-black uppercase tracking-[0.1em] shadow-lg ${
+                                                        isMaxPriority
+                                                        ? 'bg-primary text-white shadow-primary/30'
+                                                        : isHighPriority
+                                                        ? 'bg-red-600 text-white shadow-red-600/30'
+                                                        : 'bg-slate-700 text-white'
+                                                    }`}>
+                                                        {tip.priority.toUpperCase()}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </section>
+
+                    {/* Problems Section */}
+                    <section>
+                        <h3 className="text-2xl font-bold flex items-center gap-3 text-white mb-6 px-2">
+                            <span className="material-symbols-outlined text-red-500 text-[32px]">dangerous</span>
+                            Problemas Crônicos
+                        </h3>
+                        <div className="grid grid-cols-1 gap-6">
+                            {reportData.defects.map((defect) => (
+                                <div key={defect.id} className="bg-surface-dark border border-gray-800 rounded-3xl p-8 shadow-md hover:shadow-xl transition-all">
+                                    <h4 className="text-xl font-bold mb-3 text-white uppercase tracking-tight">
+                                        {translateTerm(defect.title)}
+                                    </h4>
+                                    <p className="text-lg text-slate-300 leading-relaxed font-medium">{defect.description}</p>
+                                    <div className="mt-6 pt-5 border-t border-white/5">
+                                        <span className="text-xs font-bold text-red-500 uppercase tracking-widest bg-red-500/10 px-4 py-1.5 rounded-lg border border-red-500/20">Frequência: {defect.frequency}</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
                 </div>
             </main>
-
-            {/* Print Footer */}
-            <footer className="hidden print:block p-8 border-t mt-10 text-center text-xs text-gray-400">
-                Este relatório foi gerado automaticamente pela AutoIntel IA e possui caráter meramente informativo.
-            </footer>
         </div>
     );
 };

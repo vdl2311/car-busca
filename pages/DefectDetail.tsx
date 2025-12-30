@@ -1,13 +1,31 @@
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const DefectDetail: React.FC = () => {
     const navigate = useNavigate();
 
+    const handleDownloadPDF = () => {
+        window.print();
+    };
+
     return (
         <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white min-h-screen relative pb-28">
+            <style>
+                {`
+                @media print {
+                    header, .bottom-actions, .nav-bar { display: none !important; }
+                    main { padding: 0 !important; width: 100% !important; margin: 0 !important; }
+                    body { background: white !important; color: black !important; }
+                    .bg-surface-dark, .bg-white { background: transparent !important; border: 1px solid #eee !important; box-shadow: none !important; }
+                    .text-white { color: black !important; }
+                    .bg-primary { background: #135bec !important; color: white !important; -webkit-print-color-adjust: exact; }
+                }
+                `}
+            </style>
+
             {/* Top Bar */}
-            <div className="sticky top-0 z-40 flex items-center justify-between bg-background-light/90 dark:bg-background-dark/90 p-4 border-b border-gray-200 dark:border-gray-800/60 backdrop-blur-md">
+            <div className="sticky top-0 z-40 flex items-center justify-between bg-background-light/90 dark:bg-background-dark/90 p-4 border-b border-gray-200 dark:border-gray-800/60 backdrop-blur-md no-print">
                 <button onClick={() => navigate(-1)} className="text-slate-900 dark:text-white flex size-10 shrink-0 items-center justify-center rounded-full hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors">
                     <span className="material-symbols-outlined">arrow_back</span>
                 </button>
@@ -106,9 +124,12 @@ const DefectDetail: React.FC = () => {
             </main>
 
             {/* Bottom Actions */}
-            <div className="fixed bottom-0 left-0 right-0 p-4 bg-background-light dark:bg-background-dark border-t border-gray-200 dark:border-gray-800 z-50">
+            <div className="fixed bottom-0 left-0 right-0 p-4 bg-background-light dark:bg-background-dark border-t border-gray-200 dark:border-gray-800 z-50 no-print">
                 <div className="flex gap-3 max-w-2xl mx-auto w-full">
-                    <button className="flex-1 flex items-center justify-center gap-2 h-12 px-4 rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-slate-700 dark:text-white font-medium hover:bg-gray-50 dark:hover:bg-gray-700 active:scale-95 transition-all">
+                    <button 
+                        onClick={handleDownloadPDF}
+                        className="flex-1 flex items-center justify-center gap-2 h-12 px-4 rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-slate-700 dark:text-white font-medium hover:bg-gray-50 dark:hover:bg-gray-700 active:scale-95 transition-all"
+                    >
                         <span className="material-symbols-outlined text-[20px]">save_alt</span>
                         <span className="whitespace-nowrap">Baixar Relatório PDF</span>
                     </button>
