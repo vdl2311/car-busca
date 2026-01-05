@@ -12,15 +12,34 @@ const ReportIssue: React.FC = () => {
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [isRecording, setIsRecording] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const chatRef = useRef<any>(null);
 
     useEffect(() => {
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-        chatRef.current = ai.chats.create({
-            model: 'gemini-3-flash-preview',
-            config: { systemInstruction: "Você é o Mecânico Virtual Expert do AutoIntel AI. Forneça diagnósticos técnicos de alta precisão. Seja direto, técnico e utilize negrito para peças críticas. Comece sempre saudando o cliente como membro AutoIntel Pro." }
-        });
+        const initChat = async () => {
+            try {
+                const apiKey = process.env.API_KEY;
+                // Verificação robusta para Vercel/Vite
+                if (!apiKey || apiKey === 'undefined' || apiKey === '') {
+                    setError("Chave de API não configurada. Verifique as variáveis de ambiente no Vercel.");
+                    return;
+                }
+
+                const ai = new GoogleGenAI({ apiKey });
+                chatRef.current = ai.chats.create({
+                    model: 'gemini-3-flash-preview',
+                    config: { 
+                        systemInstruction: "Você é o Mecânico Virtual Expert do AutoIntel AI. Forneça diagnósticos técnicos de alta precisão. Seja direto, técnico e utilize negrito para peças críticas. Comece sempre saudando o cliente como membro AutoIntel Pro." 
+                    }
+                });
+            } catch (err) {
+                console.error("Erro ao inicializar chat:", err);
+                setError("Falha ao conectar com o motor neural.");
+            }
+        };
+
+        initChat();
     }, []);
 
     useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
@@ -44,7 +63,12 @@ const ReportIssue: React.FC = () => {
                     setMessages(prev => prev.map(msg => msg.id === aiMsgId ? { ...msg, text: fullText } : msg));
                 }
             }
-        } catch (e) { console.error(e); } finally { setIsLoading(false); }
+        } catch (e) { 
+            console.error(e);
+            setError("Ocorreu um erro durante a transmissão da resposta.");
+        } finally { 
+            setIsLoading(false); 
+        }
     };
 
     const toggleVoiceInput = () => {
@@ -74,6 +98,16 @@ const ReportIssue: React.FC = () => {
 
         recognition.start();
     };
+
+    if (error) return (
+        <div className="flex flex-col h-screen items-center justify-center bg-background-dark text-white p-10 text-center">
+            <span className="material-symbols-outlined text-accent-red text-7xl mb-6">api_off</span>
+            <h2 className="text-2xl font-black uppercase mb-4 max-w-md leading-tight">{error}</h2>
+            <button onClick={() => window.location.reload()} className="mt-4 bg-primary px-8 py-3 rounded-xl font-black uppercase tracking-widest hover:bg-blue-600 transition-all text-xs">
+                Tentar Novamente
+            </button>
+        </div>
+    );
 
     return (
         <div className="flex flex-col h-full bg-background-dark text-white relative page-transition overflow-hidden">
