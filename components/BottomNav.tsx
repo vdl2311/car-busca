@@ -6,40 +6,30 @@ import { AppRoute } from '../types';
 const BottomNav: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
-
     const isActive = (path: string) => location.pathname === path;
 
     const navItems = [
-        { icon: 'home', label: 'Início', path: AppRoute.HOME },
-        { icon: 'directions_car', label: 'Garagem', path: AppRoute.HOME }, 
-        { icon: 'smart_toy', label: 'Mecânico Virtual', path: AppRoute.REPORT_ISSUE },
-        { icon: 'person', label: 'Perfil', path: AppRoute.PROFILE },
+        { icon: 'search', label: 'Início', path: AppRoute.HOME },
+        { icon: 'smart_toy', label: 'Consultoria', path: AppRoute.REPORT_ISSUE },
+        { icon: 'history', label: 'Histórico', path: AppRoute.PROFILE },
     ];
 
     return (
-        <nav className="fixed bottom-0 z-50 w-full bg-white dark:bg-surface-dark border-t border-gray-200 dark:border-gray-800 pb-safe md:hidden">
-            <div className="flex justify-around items-center h-16">
+        <nav className="fixed bottom-0 z-50 w-full glass border-t border-white/5 pb-safe md:hidden">
+            <div className="flex justify-around items-center h-22 px-4">
                 {navItems.map((item, index) => {
                     const active = isActive(item.path);
-                    
                     return (
                         <button
                             key={index}
                             onClick={() => navigate(item.path)}
-                            className={`flex flex-col items-center justify-center w-full h-full transition-colors ${
-                                active ? 'text-primary' : 'text-gray-400 hover:text-slate-600 dark:hover:text-slate-200'
-                            } relative`}
+                            className={`flex flex-col items-center justify-center w-full h-full transition-all duration-300 relative ${active ? 'text-primary' : 'text-slate-600'}`}
                         >
-                            <span 
-                                className="material-symbols-outlined" 
-                                style={{ 
-                                    fontSize: '24px', 
-                                    fontVariationSettings: active ? "'FILL' 1" : "'FILL' 0" 
-                                }}
-                            >
+                            {active && <div className="absolute top-0 w-12 h-1 bg-primary rounded-full shadow-[0_0_15px_#135bec]"></div>}
+                            <span className="material-symbols-outlined text-[30px]" style={{ fontVariationSettings: active ? "'FILL' 1" : "'FILL' 0" }}>
                                 {item.icon}
                             </span>
-                            <span className="text-[10px] font-medium mt-1">{item.label}</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest mt-1.5">{item.label}</span>
                         </button>
                     );
                 })}
