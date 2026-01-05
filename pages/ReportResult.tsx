@@ -25,6 +25,7 @@ const ReportResult: React.FC = () => {
     const { brand, model, version, year, km, savedReportData } = location.state || {};
     const [reportData, setReportData] = useState<ReportData | null>(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [isSaving, setIsSaving] = useState(false);
     const [isSaved, setIsSaved] = useState(false);
 
@@ -35,9 +36,22 @@ const ReportResult: React.FC = () => {
             setIsSaved(true);
             return; 
         }
+
+        if (!brand || !model) {
+            setError("Dados do veículo não encontrados. Por favor, reinicie a busca.");
+            setLoading(false);
+            return;
+        }
+
         setLoading(true);
+        setError(null);
         try {
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+            const apiKey = process.env.API_KEY;
+            if (!apiKey) {
+                throw new Error("Chave de API não configurada no ambiente.");
+            }
+
+            const ai = new GoogleGenAI({ apiKey });
             const prompt = `Gere um laudo técnico para o veículo: ${brand} ${model} ${version} ${year}. Quilometragem: ${km}. 
             Retorne um JSON com:
             1. Score (0-10)
@@ -78,8 +92,19 @@ const ReportResult: React.FC = () => {
                     }
                 }
             });
-            if (response.text) setReportData(JSON.parse(response.text));
-        } catch (e) { console.error(e); } finally { setLoading(false); }
+            
+            if (response.text) {
+                const data = JSON.parse(response.text);
+                setReportData(data);
+            } else {
+                throw new Error("A IA não retornou dados válidos.");
+            }
+        } catch (e: any) { 
+            console.error("Erro ao gerar laudo:", e);
+            setError("Ocorreu um erro ao gerar o laudo técnico. Verifique sua conexão ou a configuração da API_KEY no Vercel.");
+        } finally { 
+            setLoading(false); 
+        }
     };
 
     useEffect(() => { fetchReport(); }, [brand, model, version, year, km]);
@@ -114,7 +139,17 @@ const ReportResult: React.FC = () => {
     if (loading) return (
         <div className="flex flex-col h-screen items-center justify-center bg-background-dark text-white p-10">
             <div className="size-24 border-8 border-primary border-t-transparent rounded-full animate-spin mb-10"></div>
-            <h2 className="text-3xl font-black uppercase tracking-normal italic">Analisando Componentes...</h2>
+            <h2 className="text-3xl font-black uppercase tracking-normal italic text-center">Analisando Componentes...</h2>
+        </div>
+    );
+
+    if (error) return (
+        <div className="flex flex-col h-screen items-center justify-center bg-background-dark text-white p-10 text-center">
+            <span className="material-symbols-outlined text-accent-red text-7xl mb-6">error</span>
+            <h2 className="text-2xl font-black uppercase mb-4 max-w-md">{error}</h2>
+            <button onClick={() => navigate(AppRoute.HOME)} className="bg-primary px-10 py-4 rounded-xl font-black uppercase tracking-widest hover:bg-blue-600 transition-all">
+                Voltar ao Início
+            </button>
         </div>
     );
 
@@ -191,7 +226,6 @@ const ReportResult: React.FC = () => {
                     </div>
                 </section>
 
-                {/* VOZ DA COMUNIDADE - SEÇÃO COM FONTES */}
                 <section className="space-y-10">
                     <div className="flex items-center gap-6 px-4">
                         <span className="material-symbols-outlined text-accent-yellow text-5xl md:text-6xl">groups</span>
