@@ -22,7 +22,11 @@ const ReportResult: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { user } = useAuth();
-    const { brand, model, version, year, km, savedReportData } = location.state || {};
+    
+    // Proteção contra refresh: se state for null, evita crash
+    const state = location.state || {};
+    const { brand, model, version, year, km, savedReportData } = state;
+    
     const [reportData, setReportData] = useState<ReportData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -30,6 +34,7 @@ const ReportResult: React.FC = () => {
     const [isSaved, setIsSaved] = useState(false);
 
     const fetchReport = async () => {
+        // Se já temos os dados (vindo do histórico), apenas exibe
         if (savedReportData) { 
             setReportData(savedReportData); 
             setLoading(false); 
@@ -37,8 +42,9 @@ const ReportResult: React.FC = () => {
             return; 
         }
 
+        // Se não há dados básicos e não é um relatório salvo, houve perda de estado (refresh)
         if (!brand || !model) {
-            setError("Dados do veículo não encontrados. Por favor, reinicie a busca.");
+            setError("Dados do veículo não encontrados. Por favor, reinicie a busca no menu Início.");
             setLoading(false);
             return;
         }
@@ -46,13 +52,14 @@ const ReportResult: React.FC = () => {
         setLoading(true);
         setError(null);
         try {
+            // No Vercel/Vite, se a variável não existe no build, ela vira a string "undefined"
             const apiKey = process.env.API_KEY;
-            if (!apiKey) {
-                throw new Error("Chave de API não configurada no ambiente.");
+            if (!apiKey || apiKey === 'undefined' || apiKey === '') {
+                throw new Error("API_KEY_MISSING");
             }
 
             const ai = new GoogleGenAI({ apiKey });
-            const prompt = `Gere um laudo técnico para o veículo: ${brand} ${model} ${version} ${year}. Quilometragem: ${km}. 
+            const prompt = `Gere um laudo técnico para o veículo: ${brand} ${model} ${version || ''} ${year}. Quilometragem: ${km || 'não informada'}. 
             Retorne um JSON com:
             1. Score (0-10)
             2. Veredito (status e sumário)
@@ -97,11 +104,15 @@ const ReportResult: React.FC = () => {
                 const data = JSON.parse(response.text);
                 setReportData(data);
             } else {
-                throw new Error("A IA não retornou dados válidos.");
+                throw new Error("EMPTY_RESPONSE");
             }
         } catch (e: any) { 
             console.error("Erro ao gerar laudo:", e);
-            setError("Ocorreu um erro ao gerar o laudo técnico. Verifique sua conexão ou a configuração da API_KEY no Vercel.");
+            if (e.message === "API_KEY_MISSING") {
+                setError("Chave de API (API_KEY) não configurada no Vercel. Adicione-a nas variáveis de ambiente do projeto.");
+            } else {
+                setError("Ocorreu um erro na análise neural. Tente novamente em instantes.");
+            }
         } finally { 
             setLoading(false); 
         }
@@ -113,7 +124,7 @@ const ReportResult: React.FC = () => {
         if (!user || !reportData || isSaved) return;
         setIsSaving(true);
         try {
-            const { error } = await supabase.from('reports').insert({
+            const { error: insertError } = await supabase.from('reports').insert({
                 user_id: user.id,
                 brand,
                 model,
@@ -122,11 +133,11 @@ const ReportResult: React.FC = () => {
                 score: reportData.score,
                 report_data: reportData
             });
-            if (!error) {
+            if (!insertError) {
                 setIsSaved(true);
                 alert('Relatório salvo com sucesso!');
             } else {
-                throw error;
+                throw insertError;
             }
         } catch (e) {
             console.error(e);
@@ -146,8 +157,8 @@ const ReportResult: React.FC = () => {
     if (error) return (
         <div className="flex flex-col h-screen items-center justify-center bg-background-dark text-white p-10 text-center">
             <span className="material-symbols-outlined text-accent-red text-7xl mb-6">error</span>
-            <h2 className="text-2xl font-black uppercase mb-4 max-w-md">{error}</h2>
-            <button onClick={() => navigate(AppRoute.HOME)} className="bg-primary px-10 py-4 rounded-xl font-black uppercase tracking-widest hover:bg-blue-600 transition-all">
+            <h2 className="text-2xl font-black uppercase mb-4 max-w-md leading-tight">{error}</h2>
+            <button onClick={() => navigate(AppRoute.HOME)} className="mt-4 bg-primary px-8 py-3 rounded-xl font-black uppercase tracking-widest hover:bg-blue-600 transition-all text-xs">
                 Voltar ao Início
             </button>
         </div>
@@ -173,10 +184,10 @@ const ReportResult: React.FC = () => {
                     <button 
                         onClick={handleSaveReport}
                         disabled={isSaving}
-                        className="flex items-center gap-3 bg-primary px-6 py-3 rounded-xl font-black uppercase tracking-widest text-xs hover:bg-blue-600 transition-all disabled:opacity-50"
+                        className="flex items-center gap-2 bg-primary px-4 py-2 rounded-lg font-black uppercase tracking-widest text-[10px] hover:bg-blue-600 transition-all disabled:opacity-50"
                     >
-                        <span className="material-symbols-outlined text-xl">{isSaving ? 'sync' : 'save'}</span>
-                        <span className="hidden md:inline">{isSaving ? 'Salvando...' : 'Salvar Relatório'}</span>
+                        <span className="material-symbols-outlined text-base">{isSaving ? 'sync' : 'save'}</span>
+                        <span className="hidden md:inline">{isSaving ? 'Salvando...' : 'Salvar'}</span>
                     </button>
                 )}
             </header>
@@ -269,14 +280,14 @@ const ReportResult: React.FC = () => {
                 </section>
 
                 {!isSaved && (
-                    <div className="flex justify-center pt-4">
+                    <div className="flex justify-center pt-2">
                         <button 
                             onClick={handleSaveReport}
                             disabled={isSaving}
-                            className="w-full md:w-auto bg-primary px-10 py-5 rounded-xl font-black uppercase tracking-widest text-sm md:text-base hover:bg-blue-600 transition-all shadow-xl shadow-primary/20 flex items-center justify-center gap-3 active:scale-95"
+                            className="w-full md:w-auto bg-primary px-6 py-3 rounded-lg font-black uppercase tracking-widest text-xs hover:bg-blue-600 transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2 active:scale-95"
                         >
-                            <span className="material-symbols-outlined text-2xl">{isSaving ? 'sync' : 'cloud_upload'}</span>
-                            {isSaving ? 'Processando...' : 'Salvar no meu Histórico'}
+                            <span className="material-symbols-outlined text-xl">{isSaving ? 'sync' : 'cloud_upload'}</span>
+                            {isSaving ? 'Salvando...' : 'Salvar no Histórico'}
                         </button>
                     </div>
                 )}
