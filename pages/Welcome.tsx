@@ -36,7 +36,7 @@ const Welcome: React.FC = () => {
                             O padrão ouro em <br className="hidden sm:block"/> <span className="italic">análise automotiva.</span>
                         </h2>
                         <p className="text-[15px] md:text-xl text-slate-400 font-medium max-w-lg mx-auto leading-relaxed">
-                            Detecte fraudes, preveja manutenções e tome decisões de compra baseadas em dados reais de engenharia.
+                            Analise componentes, preveja manutenções e tome decisões de compra baseadas em dados reais de engenharia.
                         </p>
                     </div>
 

@@ -2,6 +2,7 @@
   "name": "AutoIntel AI",
   "description": "An intelligent vehicle analysis platform offering diagnostics, community support, and detailed history reports.",
   "requestFramePermissions": [
-    "microphone"
+    "microphone",
+    "camera"
   ]
 }
