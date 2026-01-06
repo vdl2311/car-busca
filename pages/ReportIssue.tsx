@@ -20,6 +20,7 @@ const ReportIssue: React.FC = () => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const reportRef = useRef<HTMLDivElement>(null);
     const chatRef = useRef<any>(null);
+    const recognitionRef = useRef<any>(null);
 
     useEffect(() => {
         const initChat = async () => {
@@ -44,6 +45,12 @@ const ReportIssue: React.FC = () => {
         };
 
         initChat();
+
+        return () => {
+            if (recognitionRef.current) {
+                recognitionRef.current.stop();
+            }
+        };
     }, []);
 
     useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
@@ -123,21 +130,56 @@ const ReportIssue: React.FC = () => {
     };
 
     const toggleVoiceInput = () => {
-        if (!('webkitSpeechRecognition' in window)) {
-            alert('A busca por voz não é suportada neste navegador.');
+        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        
+        if (!SpeechRecognition) {
+            alert('O reconhecimento de voz não é suportado neste navegador. Recomendamos o uso do Chrome ou Safari.');
             return;
         }
-        if (isRecording) { setIsRecording(false); return; }
-        const recognition = new (window as any).webkitSpeechRecognition();
+
+        if (isRecording) {
+            if (recognitionRef.current) {
+                recognitionRef.current.stop();
+            }
+            setIsRecording(false);
+            return;
+        }
+
+        const recognition = new SpeechRecognition();
+        recognitionRef.current = recognition;
+        
         recognition.lang = 'pt-BR';
-        recognition.onstart = () => setIsRecording(true);
-        recognition.onend = () => setIsRecording(false);
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+
+        recognition.onstart = () => {
+            setIsRecording(true);
+        };
+
         recognition.onresult = (event: any) => {
             const transcript = event.results[0][0].transcript;
             setInput(transcript);
             handleSend(transcript);
         };
-        recognition.start();
+
+        recognition.onerror = (event: any) => {
+            console.error('Erro no reconhecimento de voz:', event.error);
+            setIsRecording(false);
+            if (event.error === 'not-allowed') {
+                alert('Permissão de microfone negada. Verifique as configurações do seu navegador.');
+            }
+        };
+
+        recognition.onend = () => {
+            setIsRecording(false);
+        };
+
+        try {
+            recognition.start();
+        } catch (err) {
+            console.error('Falha ao iniciar reconhecimento:', err);
+            setIsRecording(false);
+        }
     };
 
     const handleDownloadPDF = async () => {

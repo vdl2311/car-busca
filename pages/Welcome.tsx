@@ -52,8 +52,9 @@ const Welcome: React.FC = () => {
                                 <span className="material-symbols-outlined font-bold text-2xl">arrow_forward</span>
                             </span>
                         </button>
-                        <p className="text-slate-500 font-bold text-xs md:text-base tracking-wide">
-                            Primeira análise técnica 100% gratuita.
+                        
+                        <p className="text-slate-500 font-bold text-[10px] md:text-sm tracking-wide uppercase opacity-60 mt-4">
+                            Acesso seguro via AutoIntel Auth
                         </p>
                     </div>
                 </div>

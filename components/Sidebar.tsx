@@ -11,7 +11,7 @@ const Sidebar: React.FC = () => {
     const navItems = [
         { icon: 'search', label: 'Análise de Veículo', path: AppRoute.HOME },
         { icon: 'robot_2', label: 'Mecânico Virtual', path: AppRoute.REPORT_ISSUE },
-        { icon: 'history', label: 'Meu Histórico', path: AppRoute.PROFILE },
+        { icon: 'person', label: 'Perfil', path: AppRoute.PROFILE },
     ];
 
     return (

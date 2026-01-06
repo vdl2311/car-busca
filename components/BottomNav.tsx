@@ -11,7 +11,7 @@ const BottomNav: React.FC = () => {
     const navItems = [
         { icon: 'search', label: 'Início', path: AppRoute.HOME },
         { icon: 'smart_toy', label: 'Consultoria', path: AppRoute.REPORT_ISSUE },
-        { icon: 'history', label: 'Histórico', path: AppRoute.PROFILE },
+        { icon: 'person', label: 'Perfil', path: AppRoute.PROFILE },
     ];
 
     return (

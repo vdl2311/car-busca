@@ -21,7 +21,7 @@ Para que a IA e o Chat funcionem no Vercel, você deve configurar as Variáveis 
 
 ## Configuração do Banco de Dados (Supabase)
 
-Para que a funcionalidade de salvar relatórios e histórico funcione corretamente, vá até o **SQL Editor** do seu projeto no Supabase e execute o seguinte comando para criar a tabela necessária:
+Execute no **SQL Editor** do Supabase:
 
 ```sql
 create table public.reports (
@@ -48,11 +48,3 @@ create policy "Usuários podem criar seus próprios relatórios"
 on public.reports for insert
 with check ( auth.uid() = user_id );
 ```
-
-## Por que isso é necessário?
-Diferente do ambiente local, o navegador não tem acesso direto às chaves por segurança. Durante o build na Vercel, o Vite lê essas variáveis e as "escreve" no código final que será entregue ao usuário, permitindo que as chamadas à API do Gemini e ao Supabase funcionem.
-
-## Desenvolvimento Local
-1. Crie um arquivo chamado `.env.local` na raiz.
-2. Adicione as mesmas variáveis acima.
-3. Rode `npm install` e `npm run dev`.
