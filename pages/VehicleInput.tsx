@@ -125,9 +125,12 @@ const VehicleInput: React.FC = () => {
     return (
         <div className="flex flex-col min-h-full bg-background-dark p-4 sm:p-6 md:p-12 max-w-7xl mx-auto page-transition overflow-x-hidden">
             <header className="flex flex-col md:flex-row md:items-end justify-between mb-8 md:mb-14 gap-6">
-                <div className="animate-fade-in">
+                <div className="animate-fade-in space-y-2">
                     <h1 className="text-3xl md:text-6xl font-black text-white tracking-tighter leading-none italic">AutoIntel <span className="text-primary not-italic">AI</span></h1>
-                    <p className="text-[10px] md:text-lg text-slate-500 font-bold mt-2 opacity-80 uppercase tracking-widest">Diagnóstico de Alta Precisão</p>
+                    <div className="space-y-1">
+                        <p className="text-[10px] md:text-lg text-slate-500 font-bold opacity-80 uppercase tracking-widest">Diagnóstico de Alta Precisão</p>
+                        <p className="text-sm md:text-xl text-slate-400 font-semibold tracking-tight">Configure as especificações do veículo abaixo para iniciar seu diagnóstico de alta fidelidade.</p>
+                    </div>
                 </div>
             </header>
 
