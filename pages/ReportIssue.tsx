@@ -35,7 +35,7 @@ const ReportIssue: React.FC = () => {
                 chatRef.current = ai.chats.create({
                     model: 'gemini-3-flash-preview',
                     config: { 
-                        systemInstruction: "Você é o Mecânico Virtual Expert do AutoIntel AI. Forneça diagnósticos técnicos de alta precisão. Analise imagens detalhadamente caso o usuário envie. Seja direto, técnico e utilize negrito para peças críticas. Comece sempre saudando o cliente como membro AutoIntel Pro e solicite marca/modelo/versão se não informados." 
+                        systemInstruction: "Você é o Mecânico Virtual Expert do AutoIntel AI. Forneça diagnósticos técnicos de alta precisão de forma que um leigo entenda. Analise imagens detalhadamente caso o usuário envie. Seja direto, utilize negrito para peças e termos importantes. Comece saudando o cliente e peça Marca/Modelo/Ano se ele não informar." 
                     }
                 });
             } catch (err) {
@@ -104,12 +104,12 @@ const ReportIssue: React.FC = () => {
                     model: 'gemini-3-flash-preview',
                     contents: {
                         parts: [
-                            { text: userText || "Analise esta imagem técnica do meu veículo." },
+                            { text: userText || "Analise esta imagem do meu veículo." },
                             { inlineData: { data: currentImage.data, mimeType: currentImage.mimeType } }
                         ]
                     },
                     config: {
-                        systemInstruction: "Você é o Mecânico Virtual Expert do AutoIntel AI. Forneça diagnósticos técnicos de alta precisão com base na imagem enviada."
+                        systemInstruction: "Você é o Mecânico Virtual Expert do AutoIntel AI. Explique o diagnóstico da imagem de forma simples para o dono do carro."
                     }
                 });
                 
@@ -210,69 +210,77 @@ const ReportIssue: React.FC = () => {
 
             <div ref={reportRef} className="flex-1 overflow-y-auto p-4 md:p-12 space-y-6 md:space-y-10 pb-96 no-scrollbar" style={{ backgroundColor: '#0B0F1A' }}>
                 {messages.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center min-h-full py-10 animate-fade-in px-4">
-                        <div className="max-w-5xl w-full space-y-12">
-                            <div className="text-center space-y-6">
-                                <div className="size-20 md:size-32 rounded-[2.5rem] bg-surface-dark border border-white/10 flex items-center justify-center mx-auto shadow-2xl ring-4 ring-primary/10">
-                                    <span className="material-symbols-outlined text-4xl md:text-6xl text-primary font-bold">clinical_notes</span>
+                    <div className="flex flex-col items-center justify-start min-h-full py-6 md:py-12 animate-fade-in px-4">
+                        <div className="max-w-4xl w-full">
+                            
+                            {/* Card Único de Protocolo Simplificado */}
+                            <div className="bg-surface-dark/60 border-2 border-primary/30 rounded-[2.5rem] md:rounded-[4rem] overflow-hidden shadow-[0_0_60px_rgba(19,91,236,0.15)]">
+                                
+                                {/* Header do Card */}
+                                <div className="bg-primary/10 p-8 md:p-12 border-b border-primary/20 flex items-center gap-6">
+                                    <div className="size-16 md:size-24 rounded-3xl bg-primary flex items-center justify-center text-white shadow-lg">
+                                        <span className="material-symbols-outlined text-4xl md:text-6xl font-bold">assignment_turned_in</span>
+                                    </div>
+                                    <div>
+                                        <h3 className="text-2xl md:text-5xl font-black uppercase italic tracking-tighter">Protocolo de Diagnóstico</h3>
+                                        <p className="text-sm md:text-2xl text-primary font-bold uppercase tracking-widest mt-1">Como ter o melhor laudo</p>
+                                    </div>
                                 </div>
-                                <h3 className="text-3xl md:text-6xl font-black tracking-tighter text-white uppercase italic">Protocolo de Diagnóstico</h3>
-                                <p className="text-sm md:text-3xl text-slate-400 font-bold max-w-3xl mx-auto leading-tight">
-                                    Siga as diretrizes abaixo para uma <span className="text-primary">Precisão de Engenharia</span>:
-                                </p>
+
+                                {/* Conteúdo do Card em Lista Simplificada */}
+                                <div className="p-8 md:p-14 space-y-8 md:space-y-12">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
+                                        
+                                        <div className="flex gap-5 md:gap-7 items-start">
+                                            <span className="material-symbols-outlined text-primary text-3xl md:text-5xl shrink-0">directions_car</span>
+                                            <div className="space-y-1">
+                                                <h4 className="text-lg md:text-3xl font-black text-white uppercase tracking-tight">01. Dados do Carro</h4>
+                                                <p className="text-sm md:text-2xl text-slate-400 font-bold leading-snug">Diga a **marca, modelo e o ano** do seu veículo.</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex gap-5 md:gap-7 items-start">
+                                            <span className="material-symbols-outlined text-accent-yellow text-3xl md:text-5xl shrink-0">photo_camera</span>
+                                            <div className="space-y-1">
+                                                <h4 className="text-lg md:text-3xl font-black text-white uppercase tracking-tight">02. Mande Fotos</h4>
+                                                <p className="text-sm md:text-2xl text-slate-400 font-bold leading-snug">Envie fotos de **vazamentos** ou de **luzes acesas no painel**.</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex gap-5 md:gap-7 items-start">
+                                            <span className="material-symbols-outlined text-accent-green text-3xl md:text-5xl shrink-0">qr_code_scanner</span>
+                                            <div className="space-y-1">
+                                                <h4 className="text-lg md:text-3xl font-black text-white uppercase tracking-tight">03. Códigos de Erro</h4>
+                                                <p className="text-sm md:text-2xl text-slate-400 font-bold leading-snug">Se passou por scanner, informe o código (Ex: **P0300**).</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex gap-5 md:gap-7 items-start">
+                                            <span className="material-symbols-outlined text-accent-red text-3xl md:text-5xl shrink-0">noise_aware</span>
+                                            <div className="space-y-1">
+                                                <h4 className="text-lg md:text-3xl font-black text-white uppercase tracking-tight">04. Barulhos ou Falhas</h4>
+                                                <p className="text-sm md:text-2xl text-slate-400 font-bold leading-snug">Conte o que está sentindo ao dirigir ou barulhos estranhos.</p>
+                                            </div>
+                                        </div>
+
+                                    </div>
+
+                                    {/* Footer do Card - Dica Simplificada */}
+                                    <div className="pt-8 md:pt-12 border-t border-white/5 flex flex-col md:flex-row items-center gap-4 md:gap-8 opacity-80">
+                                        <div className="px-4 py-1.5 bg-primary/20 text-primary rounded-full text-[10px] md:text-lg font-black uppercase tracking-[0.2em] italic shrink-0">Dica Útil</div>
+                                        <p className="text-xs md:text-2xl text-slate-300 font-bold text-center md:text-left leading-relaxed">
+                                            Saber a data da **última revisão** ajuda muito a IA a descobrir o problema.
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="bg-primary/10 border border-primary/30 p-8 md:p-12 rounded-[3rem] space-y-6 shadow-[0_0_40px_rgba(19,91,236,0.1)] group">
-                                    <div className="size-16 rounded-2xl bg-primary/20 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                                        <span className="material-symbols-outlined text-4xl font-black">car_repair</span>
-                                    </div>
-                                    <h4 className="text-xl md:text-4xl font-black uppercase tracking-tight text-white">01. Identifique o Veículo</h4>
-                                    <p className="text-sm md:text-2xl text-slate-300 font-bold leading-relaxed">
-                                        Informe **Marca, Modelo e Versão**. Essencial para cruzar boletins técnicos específicos.
-                                    </p>
-                                </div>
-
-                                <div className="bg-surface-dark/40 border border-white/5 p-8 md:p-12 rounded-[3rem] space-y-6 hover:border-primary/30 transition-all group">
-                                    <div className="size-16 rounded-2xl bg-accent-yellow/10 flex items-center justify-center text-accent-yellow group-hover:scale-110 transition-transform">
-                                        <span className="material-symbols-outlined text-4xl font-black">photo_camera</span>
-                                    </div>
-                                    <h4 className="text-xl md:text-4xl font-black uppercase tracking-tight text-white">02. Análise Visual</h4>
-                                    <p className="text-sm md:text-2xl text-slate-400 font-bold leading-relaxed">
-                                        Fotos de **vazamentos** ou **luzes no painel** permitem que a IA identifique falhas estruturais.
-                                    </p>
-                                </div>
-
-                                <div className="bg-surface-dark/40 border border-white/5 p-8 md:p-12 rounded-[3rem] space-y-6 hover:border-primary/30 transition-all group">
-                                    <div className="size-16 rounded-2xl bg-accent-green/10 flex items-center justify-center text-accent-green group-hover:scale-110 transition-transform">
-                                        <span className="material-symbols-outlined text-4xl font-black">barcode_scanner</span>
-                                    </div>
-                                    <h4 className="text-xl md:text-4xl font-black uppercase tracking-tight text-white">03. Códigos OBD-II</h4>
-                                    <p className="text-sm md:text-2xl text-slate-400 font-bold leading-relaxed">
-                                        Informe códigos como **P0300**. Nossa base cruza dados de reparo globais.
-                                    </p>
-                                </div>
-
-                                <div className="bg-surface-dark/40 border border-white/5 p-8 md:p-12 rounded-[3rem] space-y-6 hover:border-primary/30 transition-all group">
-                                    <div className="size-16 rounded-2xl bg-accent-red/10 flex items-center justify-center text-accent-red group-hover:scale-110 transition-transform">
-                                        <span className="material-symbols-outlined text-4xl font-black">volume_up</span>
-                                    </div>
-                                    <h4 className="text-xl md:text-4xl font-black uppercase tracking-tight text-white">04. Sintomas</h4>
-                                    <p className="text-sm md:text-2xl text-slate-400 font-bold leading-relaxed">
-                                        Descreva ruídos: **"Batida metálica"**. Informe se motor está **frio** ou **quente**.
-                                    </p>
-                                </div>
+                            {/* Indicador de Ação Abaixo */}
+                            <div className="mt-12 flex flex-col items-center gap-4 animate-bounce opacity-40">
+                                <p className="text-[10px] md:text-xl font-black uppercase tracking-[0.5em] text-primary">Escreva sua dúvida abaixo</p>
+                                <span className="material-symbols-outlined text-3xl md:text-5xl">keyboard_double_arrow_down</span>
                             </div>
 
-                            <div className="bg-primary/5 border border-primary/20 p-8 md:p-14 rounded-[3rem] flex flex-col md:flex-row items-center gap-8">
-                                <span className="material-symbols-outlined text-5xl md:text-8xl text-primary font-black animate-pulse shrink-0">tips_and_updates</span>
-                                <div className="flex-1 text-center md:text-left">
-                                    <h5 className="text-base md:text-2xl font-black uppercase tracking-[0.3em] text-primary">Dica Pro</h5>
-                                    <p className="text-base md:text-3xl text-slate-300 font-bold mt-2 leading-relaxed">
-                                        Detalhes sobre a **última revisão** tornam a previsão de vida útil muito mais precisa.
-                                    </p>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 ) : (
@@ -287,7 +295,7 @@ const ReportIssue: React.FC = () => {
                                 {msg.role === 'model' && (
                                     <div className="flex gap-3 items-center mb-6">
                                         <span className="material-symbols-outlined text-primary text-[24px] md:text-[32px] font-black">build</span>
-                                        <span className="text-[12px] md:text-[14px] font-black text-primary uppercase tracking-[0.4em]">Parecer Técnico</span>
+                                        <span className="text-[12px] md:text-[14px] font-black text-primary uppercase tracking-[0.4em]">Parecer do Mecânico</span>
                                     </div>
                                 )}
                                 <div className="text-base md:text-3xl leading-relaxed whitespace-pre-wrap font-bold">
@@ -303,7 +311,6 @@ const ReportIssue: React.FC = () => {
             <div className="fixed bottom-[72px] md:bottom-0 left-0 right-0 p-4 md:p-12 bg-gradient-to-t from-background-dark via-background-dark/95 to-transparent z-50 no-print">
                 <div className="max-w-6xl mx-auto space-y-4">
                     
-                    {/* Input Header for Clarity */}
                     <div className="flex items-center gap-3 px-2 md:px-4 animate-fade-in">
                         <span className="size-2 md:size-3 bg-primary rounded-full animate-pulse"></span>
                         <h4 className="text-xs md:text-xl font-black uppercase tracking-[0.3em] text-primary">Converse com o Mecânico Virtual</h4>
@@ -335,7 +342,7 @@ const ReportIssue: React.FC = () => {
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSend())}
-                                placeholder="Informe marca, modelo e o sintoma..."
+                                placeholder="Diga o carro e o que está acontecendo..."
                                 className="w-full rounded-2xl md:rounded-[3rem] border-2 border-white/5 bg-background-dark/50 py-4 md:py-9 pl-6 md:pl-14 pr-16 md:pr-28 text-base md:text-3xl text-white placeholder-slate-700 focus:border-primary focus:ring-[15px] focus:ring-primary/10 outline-none resize-none max-h-32 md:max-h-60 min-h-[56px] md:min-h-[110px] transition-all font-bold"
                                 rows={1}
                             />
