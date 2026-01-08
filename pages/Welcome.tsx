@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppRoute } from '../types';
 import { useAuth } from '../contexts/AuthContext';
@@ -7,13 +7,83 @@ import { useAuth } from '../contexts/AuthContext';
 const Welcome: React.FC = () => {
     const navigate = useNavigate();
     const { user, loading } = useAuth();
+    const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+    const [showInstallBanner, setShowInstallBanner] = useState(false);
+    const [isIOS, setIsIOS] = useState(false);
 
     useEffect(() => {
         if (!loading && user) navigate(AppRoute.HOME);
     }, [user, loading, navigate]);
 
+    useEffect(() => {
+        // Detectar iOS para mostrar instrução manual
+        const isIosDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+        setIsIOS(isIosDevice);
+
+        // Capturar o prompt de instalação (Android/Chrome)
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            setDeferredPrompt(e);
+            setShowInstallBanner(true);
+        });
+
+        // Verificar se já está em modo standalone (já instalado)
+        if (window.matchMedia('(display-mode: standalone)').matches) {
+            setShowInstallBanner(false);
+        }
+
+        // Se for iOS e não estiver instalado, mostrar banner após 2 segundos
+        if (isIosDevice && !window.matchMedia('(display-mode: standalone)').matches) {
+            setTimeout(() => setShowInstallBanner(true), 2000);
+        }
+    }, []);
+
+    const handleInstallClick = async () => {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            if (outcome === 'accepted') {
+                setDeferredPrompt(null);
+                setShowInstallBanner(false);
+            }
+        } else if (isIOS) {
+            alert('Para instalar: Clique no ícone de "Compartilhar" do Safari e selecione "Adicionar à Tela de Início".');
+        }
+    };
+
     return (
         <div className="flex flex-col h-screen bg-background-dark text-white overflow-hidden relative">
+            {/* Banner de Instalação */}
+            {showInstallBanner && (
+                <div className="fixed top-4 left-4 right-4 z-[100] animate-fade-in">
+                    <div className="glass p-4 rounded-3xl border border-primary/30 flex items-center justify-between shadow-[0_20px_40px_rgba(0,0,0,0.4)]">
+                        <div className="flex items-center gap-3">
+                            <div className="size-10 rounded-xl bg-primary flex items-center justify-center">
+                                <span className="material-symbols-outlined text-white text-xl font-bold">install_mobile</span>
+                            </div>
+                            <div>
+                                <h4 className="text-xs font-black uppercase tracking-widest text-white">Instalar AutoIntel</h4>
+                                <p className="text-[10px] text-slate-400 font-bold">Acesse direto da tela inicial</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button 
+                                onClick={() => setShowInstallBanner(false)}
+                                className="p-2 text-slate-500 hover:text-white"
+                            >
+                                <span className="material-symbols-outlined text-xl">close</span>
+                            </button>
+                            <button 
+                                onClick={handleInstallClick}
+                                className="bg-primary px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/20"
+                            >
+                                {isIOS ? 'Como Baixar' : 'Baixar App'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Background Glows */}
             <div className="absolute top-[-5%] left-[-10%] w-[100%] h-[40%] md:w-[70%] md:h-[50%] bg-primary/10 blur-[80px] md:blur-[120px] rounded-full"></div>
             <div className="absolute bottom-[-5%] right-[-10%] w-[100%] h-[40%] md:w-[70%] md:h-[50%] bg-blue-600/10 blur-[80px] md:blur-[120px] rounded-full"></div>
