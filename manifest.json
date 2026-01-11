@@ -4,7 +4,7 @@
   "name": "AutoIntel Pro",
   "short_name": "AutoIntel",
   "description": "Inteligência Automotiva — Diagnóstico de Precisão para Oficinas",
-  "start_url": "/?utm_source=pwa&install=true",
+  "start_url": "/?utm_source=pwa",
   "display": "standalone",
   "background_color": "#0B0F1A",
   "theme_color": "#0B0F1A",

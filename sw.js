@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'autointel-static-v4.5.6';
+const CACHE_NAME = 'autointel-v4.5.7';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -26,16 +26,9 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Estratégia Stale-While-Revalidate para performance máxima
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      const fetchPromise = fetch(event.request).then((networkResponse) => {
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, networkResponse.clone());
-        });
-        return networkResponse;
-      }).catch(() => null);
-      return cachedResponse || fetchPromise;
+    fetch(event.request).catch(() => {
+      return caches.match(event.request) || caches.match('/');
     })
   );
 });
