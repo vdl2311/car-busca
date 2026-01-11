@@ -37,6 +37,14 @@ const Profile: React.FC<ProfileProps> = ({ isDark, toggleTheme }) => {
     const [refreshing, setRefreshing] = useState(false);
     const [activeTab, setActiveTab] = useState<'reports' | 'chats'>('reports');
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+    useEffect(() => {
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            setDeferredPrompt(e);
+        });
+    }, []);
 
     const fetchData = useCallback(async (isManual = false) => {
         if (!user) return;
@@ -57,23 +65,26 @@ const Profile: React.FC<ProfileProps> = ({ isDark, toggleTheme }) => {
                 }
             }
             
-            if (chatsRes.error && !errorMessage) {
-                console.error("Erro Supabase Chats:", chatsRes.error);
-            }
-
-            if (reportsRes.data) setHistory(reportsRes.data);
             if (chatsRes.data) setChats(chatsRes.data);
+            if (reportsRes.data) setHistory(reportsRes.data);
         } catch (e: any) { 
             console.error("Erro inesperado:", e);
         } finally {
             setLoading(false);
             setRefreshing(false);
         }
-    }, [user, errorMessage]);
+    }, [user]);
 
     useEffect(() => {
         fetchData();
     }, [fetchData]);
+
+    const handleInstall = async () => {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') setDeferredPrompt(null);
+    };
 
     const handleLogout = async () => {
         await signOut();
@@ -103,12 +114,20 @@ const Profile: React.FC<ProfileProps> = ({ isDark, toggleTheme }) => {
             </header>
 
             <main className="max-w-5xl mx-auto w-full p-6 md:p-12 space-y-10 pb-40">
-                {errorMessage && (
-                    <div className="bg-red-500/10 border-2 border-red-500/30 p-8 rounded-[3rem] text-center space-y-4">
-                        <span className="material-symbols-outlined text-red-500 text-5xl">database_off</span>
-                        <h3 className="text-slate-900 dark:text-white font-black uppercase tracking-tight text-lg">Ação Necessária no Supabase</h3>
-                        <p className="text-slate-500 dark:text-slate-400 text-xs font-bold leading-relaxed max-w-sm mx-auto">{errorMessage}</p>
-                    </div>
+                {/* Promoção Instalação Mobile */}
+                {deferredPrompt && (
+                    <section onClick={handleInstall} className="bg-orange-600 p-8 rounded-[3rem] text-white flex flex-col md:flex-row items-center justify-between gap-6 cursor-pointer shadow-2xl shadow-orange-600/30">
+                        <div className="flex items-center gap-6">
+                            <div className="size-16 rounded-2xl bg-white/20 flex items-center justify-center shrink-0">
+                                <span className="material-symbols-outlined text-4xl">add_to_home_screen</span>
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-black uppercase italic tracking-tight">Instale o AutoIntel Pro</h3>
+                                <p className="text-xs font-bold opacity-80 uppercase tracking-widest mt-1">Acesso rápido direto da sua tela inicial</p>
+                            </div>
+                        </div>
+                        <button className="bg-white text-orange-600 px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px]">Baixar Agora</button>
+                    </section>
                 )}
 
                 <section className="bg-surface-light dark:bg-surface-dark/40 p-10 rounded-[3rem] border border-slate-200 dark:border-white/5 shadow-sm dark:shadow-2xl flex flex-col md:flex-row items-center gap-10">

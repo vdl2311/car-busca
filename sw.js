@@ -1,27 +1,42 @@
 
-/**
- * SERVICE WORKER DE "AUTO-DESTRUIÇÃO" v4.5.4
- * Este arquivo limpa qualquer cache anterior e se desativa.
- * Isso garante que o navegador sempre busque o index.html novo do Vercel.
- */
+const CACHE_NAME = 'autointel-v4.5.5';
+const ASSETS_TO_CACHE = [
+  '/',
+  '/index.html',
+  '/manifest.json'
+];
 
+// Instalação: Cacheia arquivos básicos
 self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(ASSETS_TO_CACHE);
+    })
+  );
   self.skipWaiting();
 });
 
+// Ativação: Limpa caches velhos
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
-          return caches.delete(cacheName);
+          if (cacheName !== CACHE_NAME) {
+            return caches.delete(cacheName);
+          }
         })
       );
-    }).then(() => self.clients.claim())
+    })
   );
+  self.clients.claim();
 });
 
+// Estratégia: Network First (Prioriza rede, senão vai pro cache)
 self.addEventListener('fetch', (event) => {
-  // Apenas busca na rede, sem cache
-  event.respondWith(fetch(event.request));
+  event.respondWith(
+    fetch(event.request).catch(() => {
+      return caches.match(event.request);
+    })
+  );
 });

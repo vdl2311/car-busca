@@ -4,65 +4,36 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 
 /**
- * LIMPEZA FORÇADA DE CACHE (ANTI-CACHE AGRESSIVO)
- * Corrigido para evitar erro "The document is in an invalid state" aguardando o carregamento da janela.
+ * CONFIGURAÇÃO PWA & CACHE
  */
-async function clearAllCaches() {
-  const executeLimpeza = async () => {
-    try {
-      // 1. Desregistrar Service Workers com tratamento de erro específico
-      if ('serviceWorker' in navigator) {
-        try {
-          const registrations = await navigator.serviceWorker.getRegistrations();
-          for (const registration of registrations) {
-            await registration.unregister();
-            console.log('[AutoIntel] Service Worker removido com sucesso.');
-          }
-        } catch (swErr) {
-          // Ignora erros de estado do documento ou permissão para não travar o app
-          console.warn('[AutoIntel] Aviso ao acessar Service Workers:', swErr);
-        }
-      }
+async function setupPWA() {
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js')
+        .then(registration => {
+          console.log('[AutoIntel] Service Worker registrado com sucesso:', registration.scope);
+        })
+        .catch(err => {
+          console.error('[AutoIntel] Falha ao registrar Service Worker:', err);
+        });
+    });
+  }
 
-      // 2. Limpar todo o Cache Storage
-      if ('caches' in window) {
-        try {
-          const cacheNames = await caches.keys();
-          for (const name of cacheNames) {
-            await caches.delete(name);
-            console.log('[AutoIntel] Cache deletado:', name);
-          }
-        } catch (cacheErr) {
-          console.warn('[AutoIntel] Aviso ao limpar Cache Storage:', cacheErr);
-        }
-      }
-
-      // 3. Controle de Versão para recarregamento forçado
-      const VERSION = '4.5.4'; // Incremento para forçar novo ciclo e atualização de ícone
-      const lastVersion = localStorage.getItem('autointel_version');
-      if (lastVersion !== VERSION) {
-        localStorage.setItem('autointel_version', VERSION);
-        console.log('[AutoIntel] Nova versão detectada. Reiniciando para aplicar mudanças de UI e ícones...');
-        // Reload apenas se não houver erro crítico anterior
-        setTimeout(() => window.location.reload(), 100);
-      }
-    } catch (err) {
-      console.error('[AutoIntel] Erro geral na rotina de limpeza:', err);
+  // Controle de Versão para recarregamento de assets quando houver update crítico
+  const VERSION = '4.5.5'; 
+  const lastVersion = localStorage.getItem('autointel_version');
+  if (lastVersion !== VERSION) {
+    localStorage.setItem('autointel_version', VERSION);
+    // Limpa caches antigos mas mantém o registro do worker
+    if ('caches' in window) {
+      const names = await caches.keys();
+      await Promise.all(names.map(name => caches.delete(name)));
     }
-  };
-
-  // Executa após a janela estar pronta para evitar "Invalid State"
-  if (document.readyState === 'complete') {
-    executeLimpeza();
-  } else {
-    window.addEventListener('load', executeLimpeza);
+    console.log('[AutoIntel] Versão atualizada. Cache limpo.');
   }
 }
 
-// Inicia processo de limpeza em background
-clearAllCaches();
-
-console.log('%c AutoIntel Pro v4.5.4 - ENGINE LARANJA ATIVA ', 'background: #f97316; color: white; font-weight: bold; padding: 4px; border-radius: 4px;');
+setupPWA();
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
