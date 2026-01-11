@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { HashRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { AppRoute } from './types';
 import { AuthProvider } from './contexts/AuthContext';
@@ -17,9 +17,27 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const location = useLocation();
     const isAuthPage = [AppRoute.WELCOME, AppRoute.LOGIN].includes(location.pathname as AppRoute);
     
+    // Theme Management
+    const [isDark, setIsDark] = useState(() => {
+        const saved = localStorage.getItem('theme');
+        return saved ? saved === 'dark' : true; // Default to dark as requested previously
+    });
+
+    useEffect(() => {
+        if (isDark) {
+            document.documentElement.classList.add('dark');
+            localStorage.setItem('theme', 'dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+            localStorage.setItem('theme', 'light');
+        }
+    }, [isDark]);
+
+    const toggleTheme = () => setIsDark(!isDark);
+
     if (isAuthPage) {
         return (
-            <div className="min-h-screen w-full bg-background-dark">
+            <div className="min-h-screen w-full bg-background-light dark:bg-background-dark">
                 {children}
             </div>
         );
@@ -33,11 +51,16 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     ].includes(location.pathname as AppRoute);
 
     return (
-        <div className="flex min-h-screen w-full bg-background-dark text-white">
-            <Sidebar />
+        <div className="flex min-h-screen w-full bg-background-light dark:bg-background-dark text-slate-900 dark:text-white transition-colors duration-300">
+            <Sidebar isDark={isDark} onToggleTheme={toggleTheme} />
             <div className="flex-1 flex flex-col relative w-full overflow-x-hidden">
                 <main className={`flex-1 w-full max-w-7xl mx-auto ${showBottomNav ? 'pb-20 md:pb-6' : 'pb-6'}`}>
-                    {children}
+                    {React.Children.map(children, child => {
+                        if (React.isValidElement(child)) {
+                            return React.cloneElement(child as React.ReactElement<any>, { isDark, toggleTheme });
+                        }
+                        return child;
+                    })}
                 </main>
                 {showBottomNav && <BottomNav />}
             </div>

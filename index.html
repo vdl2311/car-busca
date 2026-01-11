@@ -1,6 +1,6 @@
 
 <!DOCTYPE html>
-<html lang="pt-BR" class="dark">
+<html lang="pt-BR">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
@@ -42,13 +42,16 @@
               '22': '5.5rem',
             },
             colors: {
-              "primary": "#f97316", // Alterado para Laranja como Cor Primária
+              "primary": "#f97316",
               "orange-brand": "#f97316",
               "background-dark": "#0B0F1A",
+              "background-light": "#F8FAFC",
               "surface-dark": "#161C2A",
+              "surface-light": "#FFFFFF",
               "accent-green": "#10B981",
               "accent-red": "#EF4444",
-              "border-dark": "rgba(255, 255, 255, 0.08)"
+              "border-dark": "rgba(255, 255, 255, 0.08)",
+              "border-light": "rgba(0, 0, 0, 0.08)"
             },
             fontFamily: { "sans": ["Plus Jakarta Sans", "sans-serif"] },
             borderRadius: { "3xl": "1.5rem", "4xl": "2rem" }
@@ -59,14 +62,20 @@
     <style>
       :root { --sat: env(safe-area-inset-top); --sab: env(safe-area-inset-bottom); }
       body { 
-        background-color: #0B0F1A; 
+        background-color: #F8FAFC; 
         overscroll-behavior-y: none; 
         -webkit-tap-highlight-color: transparent;
+        color: #0F172A;
+        transition: background-color 0.3s ease, color 0.3s ease;
+      }
+      .dark body {
+        background-color: #0B0F1A;
         color: #F8FAFC;
       }
       .safe-top { padding-top: var(--sat); }
       .safe-bottom { padding-bottom: var(--sab); }
-      .glass { background: rgba(22, 28, 42, 0.75); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); }
+      .glass { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); }
+      .dark .glass { background: rgba(22, 28, 42, 0.75); }
       
       .no-scrollbar::-webkit-scrollbar { display: none; }
       .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

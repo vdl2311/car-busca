@@ -23,7 +23,12 @@ interface SavedChat {
     messages: any[];
 }
 
-const Profile: React.FC = () => {
+interface ProfileProps {
+    isDark?: boolean;
+    toggleTheme?: () => void;
+}
+
+const Profile: React.FC<ProfileProps> = ({ isDark, toggleTheme }) => {
     const navigate = useNavigate();
     const { user, signOut } = useAuth();
     const [history, setHistory] = useState<SavedReport[]>([]);
@@ -40,7 +45,6 @@ const Profile: React.FC = () => {
         setErrorMessage(null);
 
         try {
-            // Busca laudos e chats simultaneamente
             const [reportsRes, chatsRes] = await Promise.all([
                 supabase.from('reports').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(20),
                 supabase.from('chat_history').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(20)
@@ -81,20 +85,20 @@ const Profile: React.FC = () => {
     };
 
     return (
-        <div className="flex flex-col min-h-full bg-background-dark page-transition">
-            <header className="sticky top-0 z-50 glass border-b border-white/10 px-6 py-6 md:px-12 flex items-center justify-between">
-                <h2 className="text-xl md:text-3xl font-black tracking-tighter text-white uppercase italic leading-none">
+        <div className="flex flex-col min-h-full bg-background-light dark:bg-background-dark page-transition">
+            <header className="sticky top-0 z-50 glass border-b border-slate-200 dark:border-white/10 px-6 py-6 md:px-12 flex items-center justify-between">
+                <h2 className="text-xl md:text-3xl font-black tracking-tighter text-slate-900 dark:text-white uppercase italic leading-none">
                     Histórico <span className="text-orange-500 not-italic">PRO</span>
                 </h2>
                 <div className="flex items-center gap-3">
                     <button 
                         onClick={() => fetchData(true)} 
                         disabled={refreshing}
-                        className={`size-12 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-center text-slate-400 hover:text-white transition-all ${refreshing ? 'animate-spin' : 'active:scale-90'}`}
+                        className={`size-12 rounded-2xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all ${refreshing ? 'animate-spin' : 'active:scale-90'}`}
                     >
                         <span className="material-symbols-outlined text-xl">refresh</span>
                     </button>
-                    <button onClick={handleLogout} className="px-6 py-3 border border-red-500/20 text-red-500 font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-red-500/10">Sair</button>
+                    <button onClick={handleLogout} className="px-6 py-3 border border-red-500/20 text-red-500 font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-red-500/10 transition-colors">Sair</button>
                 </div>
             </header>
 
@@ -102,24 +106,50 @@ const Profile: React.FC = () => {
                 {errorMessage && (
                     <div className="bg-red-500/10 border-2 border-red-500/30 p-8 rounded-[3rem] text-center space-y-4">
                         <span className="material-symbols-outlined text-red-500 text-5xl">database_off</span>
-                        <h3 className="text-white font-black uppercase tracking-tighter text-lg">Ação Necessária no Supabase</h3>
-                        <p className="text-slate-400 text-xs font-bold leading-relaxed max-w-sm mx-auto">{errorMessage}</p>
+                        <h3 className="text-slate-900 dark:text-white font-black uppercase tracking-tighter text-lg">Ação Necessária no Supabase</h3>
+                        <p className="text-slate-500 dark:text-slate-400 text-xs font-bold leading-relaxed max-w-sm mx-auto">{errorMessage}</p>
                     </div>
                 )}
 
-                <section className="bg-surface-dark/40 p-10 rounded-[3rem] border border-white/5 flex flex-col md:flex-row items-center gap-10">
+                <section className="bg-surface-light dark:bg-surface-dark/40 p-10 rounded-[3rem] border border-slate-200 dark:border-white/5 shadow-sm dark:shadow-2xl flex flex-col md:flex-row items-center gap-10">
                     <div className="size-32 rounded-[2.5rem] bg-orange-600 flex items-center justify-center text-white font-black text-5xl uppercase shadow-2xl shadow-orange-600/20">
                         {user?.email?.[0]}
                     </div>
                     <div className="text-center md:text-left flex-1">
-                        <h1 className="text-2xl md:text-3xl font-black text-white truncate max-w-sm">{user?.email}</h1>
+                        <h1 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white truncate max-w-sm">{user?.email}</h1>
                         <p className="text-orange-500 font-black uppercase tracking-widest text-[10px] italic mt-2">Especialista de Bancada Ativo</p>
                     </div>
                 </section>
 
-                <div className="flex bg-surface-dark p-1.5 rounded-[2rem] border border-white/5">
-                    <button onClick={() => setActiveTab('reports')} className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] transition-all ${activeTab === 'reports' ? 'bg-orange-600 text-white shadow-xl' : 'text-slate-500'}`}>Laudos ({history.length})</button>
-                    <button onClick={() => setActiveTab('chats')} className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] transition-all ${activeTab === 'chats' ? 'bg-orange-600 text-white shadow-xl' : 'text-slate-500'}`}>Chats ({chats.length})</button>
+                {/* Theme Selector Section */}
+                <section className="bg-surface-light dark:bg-surface-dark/40 p-8 rounded-[3rem] border border-slate-200 dark:border-white/5 space-y-6">
+                    <div className="flex items-center gap-3">
+                        <span className="material-symbols-outlined text-orange-500">palette</span>
+                        <h3 className="text-sm font-black uppercase tracking-widest text-slate-500">Aparência do Painel</h3>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <button 
+                            onClick={() => toggleTheme && !isDark && toggleTheme()} // If light, do nothing if light clicked
+                            onClickCapture={() => toggleTheme && isDark && toggleTheme()}
+                            className={`flex flex-col items-center gap-3 p-6 rounded-3xl border-2 transition-all ${!isDark ? 'bg-orange-500/10 border-orange-500 text-orange-500 shadow-lg' : 'bg-slate-50 dark:bg-white/5 border-transparent text-slate-400'}`}
+                        >
+                            <span className="material-symbols-outlined text-3xl">light_mode</span>
+                            <span className="text-[11px] font-black uppercase tracking-widest">Tema Claro</span>
+                        </button>
+                        <button 
+                            onClick={() => toggleTheme && isDark && toggleTheme()} // If dark, do nothing if dark clicked
+                            onClickCapture={() => toggleTheme && !isDark && toggleTheme()}
+                            className={`flex flex-col items-center gap-3 p-6 rounded-3xl border-2 transition-all ${isDark ? 'bg-orange-500/10 border-orange-500 text-orange-500 shadow-lg' : 'bg-slate-50 dark:bg-white/5 border-transparent text-slate-400'}`}
+                        >
+                            <span className="material-symbols-outlined text-3xl">dark_mode</span>
+                            <span className="text-[11px] font-black uppercase tracking-widest">Tema Escuro</span>
+                        </button>
+                    </div>
+                </section>
+
+                <div className="flex bg-slate-100 dark:bg-surface-dark p-1.5 rounded-[2rem] border border-slate-200 dark:border-white/5">
+                    <button onClick={() => setActiveTab('reports')} className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] transition-all ${activeTab === 'reports' ? 'bg-orange-600 text-white shadow-xl' : 'text-slate-400 dark:text-slate-500'}`}>Laudos ({history.length})</button>
+                    <button onClick={() => setActiveTab('chats')} className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] transition-all ${activeTab === 'chats' ? 'bg-orange-600 text-white shadow-xl' : 'text-slate-400 dark:text-slate-500'}`}>Chats ({chats.length})</button>
                 </div>
                 
                 <div className="grid grid-cols-1 gap-4">
@@ -129,30 +159,30 @@ const Profile: React.FC = () => {
                         </div>
                     ) : activeTab === 'reports' ? (
                         history.length > 0 ? history.map((item) => (
-                            <div key={item.id} onClick={() => navigate(AppRoute.REPORT_RESULT, { state: { brand: item.brand, model: item.model, year: item.year, km: item.km, savedReportData: item.report_data } })} className="bg-surface-dark/60 p-6 rounded-[2.5rem] border border-white/5 flex items-center gap-8 cursor-pointer hover:border-orange-500/30 transition-all">
+                            <div key={item.id} onClick={() => navigate(AppRoute.REPORT_RESULT, { state: { brand: item.brand, model: item.model, year: item.year, km: item.km, savedReportData: item.report_data } })} className="bg-surface-light dark:bg-surface-dark/60 p-6 rounded-[2.5rem] border border-slate-200 dark:border-white/5 flex items-center gap-8 cursor-pointer hover:border-orange-500/30 transition-all shadow-sm dark:shadow-none">
                                 <div className="size-16 rounded-2xl bg-orange-600 flex flex-col items-center justify-center text-white shrink-0">
                                     <span className="text-xl font-black">{item.score || 0}</span>
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <h4 className="text-lg font-black text-white uppercase italic truncate">{item.brand} {item.model}</h4>
-                                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">{item.year} • {item.km} KM • {formatDate(item.created_at)}</p>
+                                    <h4 className="text-lg font-black text-slate-900 dark:text-white uppercase italic truncate">{item.brand} {item.model}</h4>
+                                    <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-1">{item.year} • {item.km} KM • {formatDate(item.created_at)}</p>
                                 </div>
-                                <span className="material-symbols-outlined text-slate-700">chevron_right</span>
+                                <span className="material-symbols-outlined text-slate-300 dark:text-slate-700">chevron_right</span>
                             </div>
-                        )) : <div className="py-20 text-center opacity-20"><p className="font-black uppercase text-xs tracking-widest">Nenhum laudo salvo</p></div>
+                        )) : <div className="py-20 text-center opacity-20"><p className="text-slate-900 dark:text-white font-black uppercase text-xs tracking-widest">Nenhum laudo salvo</p></div>
                     ) : (
                         chats.length > 0 ? chats.map((chat) => (
-                            <div key={chat.id} onClick={() => navigate(AppRoute.REPORT_ISSUE, { state: { savedChat: chat } })} className="bg-surface-dark/60 p-6 rounded-[2.5rem] border border-white/5 flex items-center gap-8 hover:border-orange-500/30 transition-all cursor-pointer">
+                            <div key={chat.id} onClick={() => navigate(AppRoute.REPORT_ISSUE, { state: { savedChat: chat } })} className="bg-surface-light dark:bg-surface-dark/60 p-6 rounded-[2.5rem] border border-slate-200 dark:border-white/5 flex items-center gap-8 hover:border-orange-500/30 transition-all cursor-pointer shadow-sm dark:shadow-none">
                                 <div className="size-16 rounded-2xl bg-orange-600 flex items-center justify-center shrink-0">
                                     <span className="material-symbols-outlined text-white text-2xl">forum</span>
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <h4 className="text-lg font-black text-white uppercase italic truncate">{chat.title || "Consulta"}</h4>
-                                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">{chat.messages?.length || 0} MENSAGENS • {formatDate(chat.created_at)}</p>
+                                    <h4 className="text-lg font-black text-slate-900 dark:text-white uppercase italic truncate">{chat.title || "Consulta"}</h4>
+                                    <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-1">{chat.messages?.length || 0} MENSAGENS • {formatDate(chat.created_at)}</p>
                                 </div>
-                                <span className="material-symbols-outlined text-slate-700">chevron_right</span>
+                                <span className="material-symbols-outlined text-slate-300 dark:text-slate-700">chevron_right</span>
                             </div>
-                        )) : <div className="py-20 text-center opacity-20"><p className="font-black uppercase text-xs tracking-widest">Nenhum chat salvo</p></div>
+                        )) : <div className="py-20 text-center opacity-20"><p className="text-slate-900 dark:text-white font-black uppercase text-xs tracking-widest">Nenhum chat salvo</p></div>
                     )}
                 </div>
             </main>

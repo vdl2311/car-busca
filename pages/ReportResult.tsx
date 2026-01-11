@@ -59,7 +59,7 @@ const ReportResult: React.FC = () => {
                                         oilType: { type: Type.STRING },
                                         oilCapacity: { type: Type.STRING },
                                         coolantType: { type: Type.STRING },
-                                        tire_pressure: { type: Type.STRING },
+                                        tirePressure: { type: Type.STRING },
                                         wheelTorque: { type: Type.STRING }
                                     }
                                 },
@@ -198,7 +198,7 @@ const ReportResult: React.FC = () => {
                         { label: 'Capacidade', val: reportData.technicalSpecs.oilCapacity, icon: 'format_color_fill' },
                         { label: 'Radiador', val: reportData.technicalSpecs.coolantType, icon: 'ac_unit' },
                         { label: 'Torque Roda', val: reportData.technicalSpecs.wheelTorque, icon: 'dynamic_form' },
-                        { label: 'Pressão Pneu', val: reportData.technicalSpecs.tire_pressure || 'Consulte Manual', icon: 'tire_repair' }
+                        { label: 'Pressão Pneu', val: reportData.technicalSpecs.tirePressure || 'Consulte Manual', icon: 'tire_repair' }
                     ].map((st, i) => (
                         <div key={i} className="bg-surface-dark/50 p-6 rounded-3xl border border-white/5 flex flex-col items-center text-center space-y-2 group hover:border-orange-500/30 transition-all">
                             <span className="material-symbols-outlined text-2xl text-orange-500">{st.icon}</span>

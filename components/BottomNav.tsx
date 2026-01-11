@@ -15,7 +15,7 @@ const BottomNav: React.FC = () => {
     ];
 
     return (
-        <nav className="fixed bottom-0 z-50 w-full glass border-t border-white/5 pb-safe md:hidden">
+        <nav className="fixed bottom-0 z-50 w-full glass border-t border-slate-200 dark:border-white/5 pb-safe md:hidden transition-colors">
             <div className="flex justify-around items-center h-22 px-4">
                 {navItems.map((item, index) => {
                     const active = isActive(item.path);
@@ -23,7 +23,7 @@ const BottomNav: React.FC = () => {
                         <button
                             key={index}
                             onClick={() => navigate(item.path)}
-                            className={`flex flex-col items-center justify-center w-full h-full transition-all duration-300 relative ${active ? 'text-orange-500' : 'text-slate-600'}`}
+                            className={`flex flex-col items-center justify-center w-full h-full transition-all duration-300 relative ${active ? 'text-orange-500' : 'text-slate-400 dark:text-slate-600'}`}
                         >
                             {active && <div className="absolute top-0 w-12 h-1 bg-orange-500 rounded-full shadow-[0_0_15px_#f97316]"></div>}
                             <span className="material-symbols-outlined text-[30px]" style={{ fontVariationSettings: active ? "'FILL' 1" : "'FILL' 0" }}>
