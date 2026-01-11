@@ -1,17 +1,17 @@
 
 # AutoIntel AI - Configuração do Banco de Dados (Supabase)
 
-Para que o aplicativo funcione corretamente e pare de exibir o erro "Could not find the table in the schema cache", você deve executar o script abaixo no **SQL Editor** do seu painel do Supabase.
+Se você vir o erro "Could not find the table in the schema cache", siga os passos abaixo:
 
-### Passo a Passo:
-1. Entre no [Supabase Dashboard](https://supabase.com/dashboard).
-2. Selecione seu projeto.
-3. Clique no ícone **SQL Editor** na barra lateral esquerda.
-4. Clique em **New Query**.
-5. Cole o código abaixo e clique em **Run**.
+### 1. Script SQL de Limpeza e Criação
+Copie e cole este código no **SQL Editor** do seu projeto Supabase para garantir que as tabelas e permissões (RLS) estejam corretas:
 
 ```sql
--- 1. CRIAR TABELA DE LAUDOS (REPORTS)
+-- 1. LIMPEZA (OPCIONAL - APAGA TUDO PARA RECOMEÇAR DO ZERO)
+-- drop table if exists public.reports cascade;
+-- drop table if exists public.chat_history cascade;
+
+-- 2. TABELA DE LAUDOS (REPORTS)
 create table if not exists public.reports (
   id uuid default gen_random_uuid() primary key,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
@@ -24,12 +24,12 @@ create table if not exists public.reports (
   report_data jsonb
 );
 
--- Habilitar RLS (Segurança de Linha) para Reports
+-- Habilitar RLS para Reports
 alter table public.reports enable row level security;
-create policy "Usuários podem ver seus próprios laudos" on public.reports for select using (auth.uid() = user_id);
-create policy "Usuários podem inserir seus próprios laudos" on public.reports for insert with check (auth.uid() = user_id);
+create policy "Users can see own reports" on public.reports for select using (auth.uid() = user_id);
+create policy "Users can insert own reports" on public.reports for insert with check (auth.uid() = user_id);
 
--- 2. CRIAR TABELA DE HISTÓRICO DE CHAT (CHAT_HISTORY)
+-- 3. TABELA DE HISTÓRICO DE CHAT (CHAT_HISTORY)
 create table if not exists public.chat_history (
   id uuid default gen_random_uuid() primary key,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
@@ -41,10 +41,13 @@ create table if not exists public.chat_history (
 
 -- Habilitar RLS para Chat
 alter table public.chat_history enable row level security;
-create policy "Usuários podem ver seus próprios chats" on public.chat_history for select using (auth.uid() = user_id);
-create policy "Usuários podem inserir seus próprios chats" on public.chat_history for insert with check (auth.uid() = user_id);
-create policy "Usuários podem atualizar seus próprios chats" on public.chat_history for update using (auth.uid() = user_id);
+create policy "Users can see own chats" on public.chat_history for select using (auth.uid() = user_id);
+create policy "Users can insert own chats" on public.chat_history for insert with check (auth.uid() = user_id);
+create policy "Users can update own chats" on public.chat_history for update using (auth.uid() = user_id);
 ```
 
-### Por que o erro acontece?
-O Supabase utiliza um cache para o esquema do banco de dados. Se as tabelas não forem criadas fisicamente, o backend do Supabase (PostgREST) não as encontrará, gerando o erro de cache. Rodar este script cria as tabelas e limpa o cache automaticamente.
+### 2. Dica para o Erro de "Schema Cache"
+Após rodar o SQL, se o erro persistir:
+1. Vá em **Settings** -> **API**.
+2. Altere qualquer configuração simples e salve (isso força o PostgREST a recarregar o esquema).
+3. Ou simplesmente aguarde 60 segundos e limpe o cache do navegador.
