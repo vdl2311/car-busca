@@ -87,8 +87,8 @@ const Profile: React.FC<ProfileProps> = ({ isDark, toggleTheme }) => {
     return (
         <div className="flex flex-col min-h-full bg-background-light dark:bg-background-dark page-transition">
             <header className="sticky top-0 z-50 glass border-b border-slate-200 dark:border-white/10 px-6 py-6 md:px-12 flex items-center justify-between">
-                <h2 className="text-xl md:text-3xl font-black tracking-tighter text-slate-900 dark:text-white uppercase italic leading-none">
-                    Histórico <span className="text-orange-500 not-italic">PRO</span>
+                <h2 className="text-xl md:text-3xl font-black tracking-tight text-slate-900 dark:text-white uppercase italic leading-none">
+                    Histórico{" "}<span className="text-orange-500 not-italic">PRO</span>
                 </h2>
                 <div className="flex items-center gap-3">
                     <button 
@@ -106,7 +106,7 @@ const Profile: React.FC<ProfileProps> = ({ isDark, toggleTheme }) => {
                 {errorMessage && (
                     <div className="bg-red-500/10 border-2 border-red-500/30 p-8 rounded-[3rem] text-center space-y-4">
                         <span className="material-symbols-outlined text-red-500 text-5xl">database_off</span>
-                        <h3 className="text-slate-900 dark:text-white font-black uppercase tracking-tighter text-lg">Ação Necessária no Supabase</h3>
+                        <h3 className="text-slate-900 dark:text-white font-black uppercase tracking-tight text-lg">Ação Necessária no Supabase</h3>
                         <p className="text-slate-500 dark:text-slate-400 text-xs font-bold leading-relaxed max-w-sm mx-auto">{errorMessage}</p>
                     </div>
                 )}
@@ -121,35 +121,9 @@ const Profile: React.FC<ProfileProps> = ({ isDark, toggleTheme }) => {
                     </div>
                 </section>
 
-                {/* Theme Selector Section */}
-                <section className="bg-surface-light dark:bg-surface-dark/40 p-8 rounded-[3rem] border border-slate-200 dark:border-white/5 space-y-6">
-                    <div className="flex items-center gap-3">
-                        <span className="material-symbols-outlined text-orange-500">palette</span>
-                        <h3 className="text-sm font-black uppercase tracking-widest text-slate-500">Aparência do Painel</h3>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <button 
-                            onClick={() => toggleTheme && !isDark && toggleTheme()} // If light, do nothing if light clicked
-                            onClickCapture={() => toggleTheme && isDark && toggleTheme()}
-                            className={`flex flex-col items-center gap-3 p-6 rounded-3xl border-2 transition-all ${!isDark ? 'bg-orange-500/10 border-orange-500 text-orange-500 shadow-lg' : 'bg-slate-50 dark:bg-white/5 border-transparent text-slate-400'}`}
-                        >
-                            <span className="material-symbols-outlined text-3xl">light_mode</span>
-                            <span className="text-[11px] font-black uppercase tracking-widest">Tema Claro</span>
-                        </button>
-                        <button 
-                            onClick={() => toggleTheme && isDark && toggleTheme()} // If dark, do nothing if dark clicked
-                            onClickCapture={() => toggleTheme && !isDark && toggleTheme()}
-                            className={`flex flex-col items-center gap-3 p-6 rounded-3xl border-2 transition-all ${isDark ? 'bg-orange-500/10 border-orange-500 text-orange-500 shadow-lg' : 'bg-slate-50 dark:bg-white/5 border-transparent text-slate-400'}`}
-                        >
-                            <span className="material-symbols-outlined text-3xl">dark_mode</span>
-                            <span className="text-[11px] font-black uppercase tracking-widest">Tema Escuro</span>
-                        </button>
-                    </div>
-                </section>
-
                 <div className="flex bg-slate-100 dark:bg-surface-dark p-1.5 rounded-[2rem] border border-slate-200 dark:border-white/5">
-                    <button onClick={() => setActiveTab('reports')} className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] transition-all ${activeTab === 'reports' ? 'bg-orange-600 text-white shadow-xl' : 'text-slate-400 dark:text-slate-500'}`}>Laudos ({history.length})</button>
-                    <button onClick={() => setActiveTab('chats')} className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] transition-all ${activeTab === 'chats' ? 'bg-orange-600 text-white shadow-xl' : 'text-slate-400 dark:text-slate-500'}`}>Chats ({chats.length})</button>
+                    <button onClick={() => setActiveTab('reports')} className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all ${activeTab === 'reports' ? 'bg-orange-600 text-white shadow-xl' : 'text-slate-400 dark:text-slate-500'}`}>Laudos ({history.length})</button>
+                    <button onClick={() => setActiveTab('chats')} className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all ${activeTab === 'chats' ? 'bg-orange-600 text-white shadow-xl' : 'text-slate-400 dark:text-slate-500'}`}>Chats ({chats.length})</button>
                 </div>
                 
                 <div className="grid grid-cols-1 gap-4">
@@ -164,8 +138,8 @@ const Profile: React.FC<ProfileProps> = ({ isDark, toggleTheme }) => {
                                     <span className="text-xl font-black">{item.score || 0}</span>
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <h4 className="text-lg font-black text-slate-900 dark:text-white uppercase italic truncate">{item.brand} {item.model}</h4>
-                                    <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-1">{item.year} • {item.km} KM • {formatDate(item.created_at)}</p>
+                                    <h4 className="text-lg font-black text-slate-900 dark:text-white uppercase italic truncate">{item.brand}{" "}{item.model}</h4>
+                                    <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-1.5">{item.year} • {item.km} KM • {formatDate(item.created_at)}</p>
                                 </div>
                                 <span className="material-symbols-outlined text-slate-300 dark:text-slate-700">chevron_right</span>
                             </div>
@@ -178,7 +152,7 @@ const Profile: React.FC<ProfileProps> = ({ isDark, toggleTheme }) => {
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <h4 className="text-lg font-black text-slate-900 dark:text-white uppercase italic truncate">{chat.title || "Consulta"}</h4>
-                                    <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-1">{chat.messages?.length || 0} MENSAGENS • {formatDate(chat.created_at)}</p>
+                                    <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-1.5">{chat.messages?.length || 0} MENSAGENS • {formatDate(chat.created_at)}</p>
                                 </div>
                                 <span className="material-symbols-outlined text-slate-300 dark:text-slate-700">chevron_right</span>
                             </div>

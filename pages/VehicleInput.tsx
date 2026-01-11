@@ -114,8 +114,8 @@ const VehicleInput: React.FC = () => {
                         <span className="material-symbols-outlined text-orange-500 font-bold">verified</span>
                         <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 dark:text-slate-500">AutoIntel Specialist v4.5</p>
                     </div>
-                    <h1 className="text-5xl md:text-8xl font-black text-slate-900 dark:text-white tracking-tighter italic uppercase leading-none">
-                        Painel <span className="text-orange-500">Master</span>
+                    <h1 className="text-5xl md:text-8xl font-black text-slate-900 dark:text-white tracking-tight italic uppercase leading-none">
+                        Painel{" "}<span className="text-orange-500">Master</span>
                     </h1>
                 </header>
 
@@ -128,7 +128,7 @@ const VehicleInput: React.FC = () => {
                         <div className="size-24 rounded-3xl bg-orange-600 flex items-center justify-center text-white mb-10 group-hover:scale-110 transition-transform shadow-xl shadow-orange-600/20">
                             <span className="material-symbols-outlined text-5xl font-black">assignment</span>
                         </div>
-                        <h2 className="text-4xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter mb-4">Novo Check-in</h2>
+                        <h2 className="text-4xl font-black text-slate-900 dark:text-white uppercase italic tracking-tight mb-4">Novo Check-in</h2>
                         <p className="text-slate-500 font-bold text-lg leading-relaxed mb-8">Consulte torques, capacidades de óleo, manuais e gere o diagnóstico especialista para o carro na rampa.</p>
                         <div className="flex items-center gap-3 text-orange-500 font-black uppercase tracking-widest text-sm">
                             Iniciar Agora <span className="material-symbols-outlined font-black">arrow_forward</span>
@@ -143,7 +143,7 @@ const VehicleInput: React.FC = () => {
                         <div className="size-24 rounded-3xl bg-primary flex items-center justify-center text-white mb-10 group-hover:scale-110 transition-transform shadow-xl shadow-primary/20">
                             <span className="material-symbols-outlined text-5xl font-black">smart_toy</span>
                         </div>
-                        <h2 className="text-4xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter mb-4">Mecânico Virtual</h2>
+                        <h2 className="text-4xl font-black text-slate-900 dark:text-white uppercase italic tracking-tight mb-4">Mecânico Virtual</h2>
                         <p className="text-slate-500 font-bold text-lg leading-relaxed mb-8">Tire dúvidas de bancada, analise fotos de peças ou peça ajuda para resolver aquele "BO" cabeludo.</p>
                         <div className="flex items-center gap-3 text-primary font-black uppercase tracking-widest text-sm">
                             Falar com a IA <span className="material-symbols-outlined font-black">arrow_forward</span>
@@ -168,10 +168,10 @@ const VehicleInput: React.FC = () => {
                     <span className="material-symbols-outlined text-3xl">arrow_back</span>
                 </button>
                 <div>
-                    <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter italic uppercase leading-none">
-                        Check-in <span className="text-orange-500">Técnico</span>
+                    <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight italic uppercase leading-none">
+                        Check-in{" "}<span className="text-orange-500">Técnico</span>
                     </h1>
-                    <p className="text-slate-500 font-bold uppercase tracking-widest text-xs mt-2">Dados do Veículo para Análise Especialista</p>
+                    <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mt-2">Dados do Veículo para Análise Especialista</p>
                 </div>
             </header>
 

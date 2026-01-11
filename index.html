@@ -7,7 +7,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
-    <title>AutoIntel AI — Inteligência Automotiva</title>
+    <title>AutoIntel Pro — Inteligência que move sua oficina</title>
     
     <!-- PWA & Mobile Optimization -->
     <link rel="manifest" href="/manifest.json" />
@@ -16,15 +16,9 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="AutoIntel" />
     
-    <!-- SEO & Social Preview -->
-    <meta property="og:type" content="website" />
-    <meta property="og:title" content="AutoIntel AI — Especialista no seu Telemóvel" />
-    <meta property="og:description" content="Diagnóstico especializado e consultoria automotiva avançada." />
-    <meta property="og:image" content="https://raw.githubusercontent.com/google/material-design-icons/master/png/action/settings_input_component/black/xxhdpi.png" />
-
     <!-- Favicons -->
-    <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/11659/11659616.png" />
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/11659/11659616.png" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg viewBox='0 0 100 100' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M50 5L89 27.5V72.5L50 95L11 72.5V27.5L50 5Z' fill='%23f97316'/%3E%3Cpath d='M50 25L70 65H60L55 55H45L40 65H30L50 25ZM50 38L47 48H53L50 38Z' fill='white'/%3E%3C/svg%3E" />
+    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg viewBox='0 0 100 100' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='100' height='100' rx='20' fill='%230B0F1A'/%3E%3Cpath d='M50 5L89 27.5V72.5L50 95L11 72.5V27.5L50 5Z' fill='%23f97316'/%3E%3Cpath d='M50 25L70 65H60L55 55H45L40 65H30L50 25ZM50 38L47 48H53L50 38Z' fill='white'/%3E%3C/svg%3E" />
 
     <!-- Styles & Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -38,20 +32,14 @@
         darkMode: "class",
         theme: {
           extend: {
-            spacing: {
-              '22': '5.5rem',
-            },
+            spacing: { '22': '5.5rem' },
             colors: {
               "primary": "#f97316",
               "orange-brand": "#f97316",
               "background-dark": "#0B0F1A",
               "background-light": "#F8FAFC",
               "surface-dark": "#161C2A",
-              "surface-light": "#FFFFFF",
-              "accent-green": "#10B981",
-              "accent-red": "#EF4444",
-              "border-dark": "rgba(255, 255, 255, 0.08)",
-              "border-light": "rgba(0, 0, 0, 0.08)"
+              "surface-light": "#FFFFFF"
             },
             fontFamily: { "sans": ["Plus Jakarta Sans", "sans-serif"] },
             borderRadius: { "3xl": "1.5rem", "4xl": "2rem" }
@@ -61,46 +49,26 @@
     </script>
     <style>
       :root { --sat: env(safe-area-inset-top); --sab: env(safe-area-inset-bottom); }
-      body { 
-        background-color: #F8FAFC; 
-        overscroll-behavior-y: none; 
-        -webkit-tap-highlight-color: transparent;
-        color: #0F172A;
-        transition: background-color 0.3s ease, color 0.3s ease;
-      }
-      .dark body {
-        background-color: #0B0F1A;
-        color: #F8FAFC;
-      }
-      .safe-top { padding-top: var(--sat); }
-      .safe-bottom { padding-bottom: var(--sab); }
+      body { background-color: #F8FAFC; color: #0F172A; transition: background-color 0.3s ease; }
+      .dark body { background-color: #0B0F1A; color: #F8FAFC; }
       .glass { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); }
       .dark .glass { background: rgba(22, 28, 42, 0.75); }
-      
-      .no-scrollbar::-webkit-scrollbar { display: none; }
-      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-      .page-transition { animation: fadeIn 0.4s ease-out; }
-      @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
-      
-      p, h1, h2, h3, h4 { word-break: break-word; overflow-wrap: break-word; }
     </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <script type="importmap">
+  <script type="importmap">
 {
   "imports": {
-    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.48.1",
-    "react-router-dom": "https://esm.sh/react-router-dom@^7.1.5",
-    "react-dom/": "https://esm.sh/react-dom@^19.0.0/",
-    "react/": "https://esm.sh/react@^19.0.0/",
-    "react": "https://esm.sh/react@^19.0.0",
+    "react-router-dom": "https://esm.sh/react-router-dom@^7.12.0",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.90.1",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
     "@google/genai": "https://esm.sh/@google/genai@^1.35.0",
-    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
-    "vite": "https://esm.sh/vite@^7.3.1"
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "vite": "https://esm.sh/vite@^7.3.1",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2"
   }
 }
 </script>
-  </head>
+</head>
   <body class="antialiased overflow-x-hidden">
     <div id="root" class="min-h-screen flex flex-col"></div>
     <script type="module" src="/index.tsx"></script>

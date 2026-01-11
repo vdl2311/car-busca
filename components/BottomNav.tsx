@@ -29,7 +29,7 @@ const BottomNav: React.FC = () => {
                             <span className="material-symbols-outlined text-[30px]" style={{ fontVariationSettings: active ? "'FILL' 1" : "'FILL' 0" }}>
                                 {item.icon}
                             </span>
-                            <span className="text-[9px] font-black uppercase tracking-tighter mt-1.5 text-center px-1 whitespace-nowrap">{item.label}</span>
+                            <span className="text-[10px] font-bold uppercase tracking-normal mt-2 text-center px-1 whitespace-nowrap leading-none">{item.label}</span>
                         </button>
                     );
                 })}

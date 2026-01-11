@@ -134,7 +134,7 @@ const ReportResult: React.FC = () => {
                     <span className="material-symbols-outlined text-6xl text-orange-500 animate-pulse">engineering</span>
                 </div>
             </div>
-            <h2 className="text-3xl font-black uppercase italic tracking-tighter text-orange-500 animate-pulse">Sincronizando Diagnóstico</h2>
+            <h2 className="text-3xl font-black uppercase italic tracking-normal text-orange-500 animate-pulse">Sincronizando Diagnóstico</h2>
             <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mt-4">Consultando base de dados AutoIntel...</p>
         </div>
     );
@@ -156,15 +156,15 @@ const ReportResult: React.FC = () => {
                         <span className="material-symbols-outlined font-black">arrow_back</span>
                     </button>
                     <div>
-                        <h1 className="text-xl md:text-3xl font-black uppercase italic tracking-tighter leading-none">{brand} {model}</h1>
-                        <div className="flex items-center gap-3 mt-1">
+                        <h1 className="text-xl md:text-3xl font-black uppercase italic tracking-tight leading-none">{brand}{" "}{model}</h1>
+                        <div className="flex items-center gap-3 mt-2">
                             <p className="text-[10px] font-black text-orange-500 uppercase tracking-widest">{year} • {km} KM</p>
                             {isSynced ? (
-                                <span className="flex items-center gap-1 text-[9px] font-black text-green-500 uppercase bg-green-500/10 px-2 py-0.5 rounded-md border border-green-500/20">
+                                <span className="flex items-center gap-1.5 text-[9px] font-black text-green-500 uppercase bg-green-500/10 px-2 py-0.5 rounded-md border border-green-500/20">
                                     <span className="material-symbols-outlined text-[12px]">cloud_done</span> Salvo no Histórico
                                 </span>
                             ) : saveError ? (
-                                <span className="flex items-center gap-1 text-[9px] font-black text-red-500 uppercase bg-red-500/10 px-2 py-0.5 rounded-md border border-red-500/20">
+                                <span className="flex items-center gap-1.5 text-[9px] font-black text-red-500 uppercase bg-red-500/10 px-2 py-0.5 rounded-md border border-red-500/20">
                                     <span className="material-symbols-outlined text-[12px]">cloud_off</span> {saveError}
                                 </span>
                             ) : isSaving ? (
@@ -185,7 +185,7 @@ const ReportResult: React.FC = () => {
                         <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-orange-500/10 text-orange-500 rounded-full border border-orange-500/20 text-[10px] font-black uppercase tracking-widest">
                             Análise Especialista Master
                         </div>
-                        <h2 className="text-4xl md:text-6xl font-black uppercase italic tracking-tighter text-white leading-tight">
+                        <h2 className="text-4xl md:text-6xl font-black uppercase italic tracking-tight text-white leading-tight">
                             {reportData.verdict.status}
                         </h2>
                         <p className="text-xl text-slate-400 font-bold leading-relaxed">{reportData.verdict.summary}</p>
@@ -210,7 +210,7 @@ const ReportResult: React.FC = () => {
                 
                 <section className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-6">
-                        <h3 className="text-2xl font-black uppercase italic tracking-tighter flex items-center gap-3">
+                        <h3 className="text-2xl font-black uppercase italic tracking-tight flex items-center gap-3">
                             <span className="material-symbols-outlined text-orange-500">warning</span> Pontos Críticos
                         </h3>
                         {reportData.defects.map((d, i) => (
@@ -224,12 +224,12 @@ const ReportResult: React.FC = () => {
                         ))}
                     </div>
                     <div className="space-y-6">
-                        <h3 className="text-2xl font-black uppercase italic tracking-tighter flex items-center gap-3">
+                        <h3 className="text-2xl font-black uppercase italic tracking-tight flex items-center gap-3">
                             <span className="material-symbols-outlined text-orange-500">calendar_month</span> Manutenção Preventiva
                         </h3>
                         {reportData.maintenanceRoadmap.map((m, i) => (
                             <div key={i} className="bg-white/5 p-8 rounded-3xl border border-white/5 border-l-4 border-l-orange-500">
-                                <h4 className="text-lg font-black text-white italic mb-4">Plano {m.km}</h4>
+                                <h4 className="text-lg font-black text-white italic mb-4">Plano{" "}{m.km}</h4>
                                 <div className="flex flex-wrap gap-2">
                                     {m.items.map((item, j) => (
                                         <span key={j} className="px-3 py-1.5 bg-background-dark rounded-xl text-[10px] font-black text-slate-400 uppercase tracking-widest border border-white/5">{item}</span>

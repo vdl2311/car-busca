@@ -57,10 +57,6 @@ const ReportIssue: React.FC = () => {
         initChat();
     }, []);
 
-    useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages, isLoading]);
-
     const formatTime = () => {
         return new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     };
@@ -173,7 +169,7 @@ const ReportIssue: React.FC = () => {
                     </div>
                     <div>
                         <h2 className="text-sm md:text-xl font-black tracking-tight uppercase italic leading-none">Mecânico Virtual</h2>
-                        <div className="flex items-center gap-1.5 mt-1">
+                        <div className="flex items-center gap-1.5 mt-2">
                             <span className="size-1.5 bg-green-500 rounded-full animate-pulse"></span>
                             <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">
                                 {savedChat ? "Histórico em exibição" : "Consultoria Ativa"}
@@ -205,15 +201,15 @@ const ReportIssue: React.FC = () => {
             <div className="flex-1 overflow-y-auto no-scrollbar scroll-smooth">
                 <div className="max-w-4xl mx-auto px-4 md:px-6 py-8 space-y-8 pb-72 md:pb-48">
                     {messages.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-8">
+                        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-10">
                             <div className="size-24 rounded-4xl bg-white/5 flex items-center justify-center border border-white/10">
                                 <span className="material-symbols-outlined text-5xl text-orange-500">forum</span>
                             </div>
-                            <div className="space-y-2">
-                                <h3 className="text-2xl md:text-3xl font-black uppercase italic tracking-tighter">Bancada Digital</h3>
+                            <div className="space-y-3">
+                                <h3 className="text-2xl md:text-3xl font-black uppercase italic tracking-tight">Bancada Digital</h3>
                                 <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">Tire dúvidas técnicas em tempo real</p>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full max-w-lg">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-lg">
                                 {[
                                     { t: 'Torques de Motor', s: 'Linha GM Ecotec' },
                                     { t: 'Esquema Elétrico', s: 'Injeção VW TSI' },
@@ -242,14 +238,14 @@ const ReportIssue: React.FC = () => {
                                         {msg.role === 'user' ? 'person' : 'smart_toy'}
                                     </span>
                                 </div>
-                                <div className={`flex flex-col space-y-1.5 max-w-[85%] md:max-w-[75%] ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                                <div className={`flex flex-col space-y-2 max-w-[85%] md:max-w-[75%] ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
                                     <div className={`relative rounded-3xl p-4 md:p-6 shadow-2xl ${
                                         msg.role === 'user' 
                                         ? 'bg-gradient-to-br from-orange-600 to-orange-700 text-white rounded-tr-none' 
                                         : 'bg-surface-dark/80 backdrop-blur-xl text-slate-100 border border-white/5 rounded-tl-none'
                                     }`}>
                                         {msg.image && (
-                                            <div className="mb-3 rounded-2xl overflow-hidden">
+                                            <div className="mb-4 rounded-2xl overflow-hidden">
                                                 <img src={msg.image} className="w-full h-auto object-cover max-h-80" alt="Anexo" />
                                             </div>
                                         )}
@@ -275,7 +271,7 @@ const ReportIssue: React.FC = () => {
             <div className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] md:bottom-0 left-0 right-0 p-4 md:p-8 bg-gradient-to-t from-background-dark via-background-dark to-transparent z-40">
                 <div className="max-w-4xl mx-auto">
                     {selectedImage && (
-                        <div className="mb-3 p-3 bg-surface-dark border border-orange-500/50 rounded-2xl w-fit flex gap-4 items-center animate-in slide-in-from-bottom-2">
+                        <div className="mb-4 p-3 bg-surface-dark border border-orange-500/50 rounded-2xl w-fit flex gap-4 items-center animate-in slide-in-from-bottom-2">
                             <img src={selectedImage.preview} className="size-16 rounded-xl object-cover" alt="Preview" />
                             <div className="flex flex-col">
                                 <span className="text-[9px] font-black text-orange-500 uppercase tracking-widest">Anexo Carregado</span>
@@ -300,7 +296,7 @@ const ReportIssue: React.FC = () => {
                                     handleSend();
                                 }
                             }}
-                            placeholder="Peça torques, óleos ou descreva o BO..." 
+                            placeholder="Peça torques, óleos ou descreva o problema..." 
                             className="flex-1 bg-transparent py-3 px-2 text-lg md:text-xl text-white outline-none resize-none max-h-32 font-bold placeholder:text-slate-700" 
                             rows={1} 
                         />
