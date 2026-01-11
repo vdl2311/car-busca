@@ -21,7 +21,7 @@ const TypingIndicator = () => (
             <div className="size-1.5 bg-orange-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
             <div className="size-1.5 bg-orange-500 rounded-full animate-bounce"></div>
         </div>
-        <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Mecânico Analisando...</span>
+        <span className="text-xs font-black uppercase tracking-widest text-slate-500 italic">Mecânico Analisando...</span>
     </div>
 );
 
@@ -243,7 +243,7 @@ const ReportIssue: React.FC = () => {
                                     </span>
                                 </div>
                                 <div className={`flex flex-col space-y-1.5 max-w-[85%] md:max-w-[75%] ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-                                    <div className={`relative rounded-3xl p-4 md:p-5 shadow-2xl ${
+                                    <div className={`relative rounded-3xl p-4 md:p-6 shadow-2xl ${
                                         msg.role === 'user' 
                                         ? 'bg-gradient-to-br from-orange-600 to-orange-700 text-white rounded-tr-none' 
                                         : 'bg-surface-dark/80 backdrop-blur-xl text-slate-100 border border-white/5 rounded-tl-none'
@@ -253,7 +253,7 @@ const ReportIssue: React.FC = () => {
                                                 <img src={msg.image} className="w-full h-auto object-cover max-h-80" alt="Anexo" />
                                             </div>
                                         )}
-                                        <div className="text-sm md:text-base font-bold whitespace-pre-wrap leading-relaxed">{msg.text}</div>
+                                        <div className="text-lg md:text-xl font-bold whitespace-pre-wrap leading-relaxed">{msg.text}</div>
                                     </div>
                                     <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest px-2">{msg.timestamp}</span>
                                 </div>
@@ -283,7 +283,7 @@ const ReportIssue: React.FC = () => {
                             </div>
                         </div>
                     )}
-                    <div className="relative flex items-center gap-3 bg-surface-dark/90 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-2 md:p-3 shadow-3xl">
+                    <div className="relative flex items-center gap-3 bg-surface-dark/90 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-2 md:p-4 shadow-3xl">
                         <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
                         <button 
                             onClick={handleFileClick} 
@@ -301,7 +301,7 @@ const ReportIssue: React.FC = () => {
                                 }
                             }}
                             placeholder="Peça torques, óleos ou descreva o BO..." 
-                            className="flex-1 bg-transparent py-3 px-2 text-sm md:text-base text-white outline-none resize-none max-h-32 font-bold placeholder:text-slate-700" 
+                            className="flex-1 bg-transparent py-3 px-2 text-lg md:text-xl text-white outline-none resize-none max-h-32 font-bold placeholder:text-slate-700" 
                             rows={1} 
                         />
                         <button 
