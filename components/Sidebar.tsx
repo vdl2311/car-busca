@@ -9,20 +9,20 @@ const Sidebar: React.FC = () => {
     const isActive = (path: string) => location.pathname === path;
 
     const navItems = [
-        { icon: 'search', label: 'Análise de Veículo', path: AppRoute.HOME },
-        { icon: 'robot_2', label: 'Mecânico Virtual', path: AppRoute.REPORT_ISSUE },
-        { icon: 'person', label: 'Perfil', path: AppRoute.PROFILE },
+        { icon: 'construction', label: 'Diagnóstico Master', path: AppRoute.HOME },
+        { icon: 'smart_toy', label: 'Mecânico Virtual', path: AppRoute.REPORT_ISSUE },
+        { icon: 'history', label: 'Histórico Técnico', path: AppRoute.PROFILE },
     ];
 
     return (
         <aside className="hidden md:flex flex-col w-80 bg-background-dark border-r border-white/5 h-screen sticky top-0 p-8 z-50">
              <div className="flex items-center gap-4 mb-14 px-2 cursor-pointer group" onClick={() => navigate(AppRoute.HOME)}>
-                <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-primary text-white shadow-[0_0_20px_rgba(19,91,236,0.3)] group-hover:scale-110 transition-all duration-300">
-                    <span className="material-symbols-outlined text-[30px] font-bold">network_intelligence</span>
+                <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-orange-600 text-white shadow-xl shadow-orange-600/20 group-hover:scale-110 transition-all">
+                    <span className="material-symbols-outlined text-[30px] font-bold">engineering</span>
                 </div>
                 <div>
-                    <h1 className="text-white font-black text-2xl tracking-tighter">AutoIntel AI</h1>
-                    <p className="text-[10px] text-primary font-black uppercase tracking-[0.2em] leading-none mt-1">Intelligence Pro</p>
+                    <h1 className="text-white font-black text-2xl tracking-tighter uppercase italic leading-none">AutoIntel <span className="text-orange-500">Pro</span></h1>
+                    <p className="text-[10px] text-orange-500 font-black uppercase tracking-[0.2em] leading-none mt-1">Especialista de Bancada</p>
                 </div>
             </div>
 
@@ -31,13 +31,13 @@ const Sidebar: React.FC = () => {
                     <button
                         key={item.path}
                         onClick={() => navigate(item.path)}
-                        className={`flex items-center gap-4 w-full p-4 rounded-2xl transition-all duration-300 group ${
+                        className={`flex items-center gap-4 w-full p-5 rounded-[2rem] transition-all duration-300 group ${
                             isActive(item.path) 
-                            ? 'bg-primary text-white shadow-[0_10px_25px_rgba(19,91,236,0.25)]' 
+                            ? 'bg-orange-600 text-white shadow-xl' 
                             : 'text-slate-500 hover:text-white hover:bg-white/5'
                         }`}
                     >
-                        <span className={`material-symbols-outlined text-[24px] ${isActive(item.path) ? 'fill-current' : ''}`}>
+                        <span className={`material-symbols-outlined text-[24px]`}>
                             {item.icon}
                         </span>
                         <span className="font-bold text-base tracking-tight">{item.label}</span>
@@ -47,12 +47,9 @@ const Sidebar: React.FC = () => {
 
             <div className="mt-auto">
                 <div className="bg-gradient-to-br from-white/[0.03] to-transparent rounded-[2rem] p-6 border border-white/5">
-                    <div className="flex items-center gap-3 mb-3">
-                        <span className="material-symbols-outlined text-primary text-xl font-bold">verified_user</span>
-                        <span className="font-black text-xs text-white uppercase tracking-widest">AutoIntel Guard</span>
-                    </div>
-                    <p className="text-[11px] text-slate-500 mb-4 font-bold leading-relaxed">Sua decisão baseada em dados reais e inteligência avançada.</p>
-                    <button className="w-full py-3 rounded-xl bg-white/5 text-xs font-black text-white hover:bg-white/10 transition-all uppercase tracking-widest">Upgrade Prime</button>
+                    <p className="text-[10px] text-slate-500 font-bold leading-relaxed">
+                        Sistema focado em alta performance mecânica. <br/> Versão 4.5 Specialist.
+                    </p>
                 </div>
             </div>
         </aside>

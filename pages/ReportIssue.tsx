@@ -1,362 +1,321 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
+import { useNavigate, useLocation } from 'react-router-dom';
+import { GoogleGenAI } from "@google/genai";
 import { AppRoute } from '../types';
+import { supabase } from '../lib/supabaseClient';
+import { useAuth } from '../contexts/AuthContext';
 
-interface Message { id: string; role: 'user' | 'model'; text: string; image?: string; }
+interface Message { 
+    id: string; 
+    role: 'user' | 'model'; 
+    text: string; 
+    image?: string; 
+    timestamp: string;
+}
+
+const TypingIndicator = () => (
+    <div className="flex gap-2 items-center p-4 bg-surface-dark/50 rounded-2xl w-fit border border-white/5 animate-pulse">
+        <div className="flex gap-1">
+            <div className="size-1.5 bg-orange-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+            <div className="size-1.5 bg-orange-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+            <div className="size-1.5 bg-orange-500 rounded-full animate-bounce"></div>
+        </div>
+        <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Mecânico Analisando...</span>
+    </div>
+);
 
 const ReportIssue: React.FC = () => {
     const navigate = useNavigate();
-    const [messages, setMessages] = useState<Message[]>([]);
+    const location = useLocation();
+    const { user } = useAuth();
+    
+    // Captura o chat enviado via navegação (Histórico)
+    const savedChat = location.state?.savedChat;
+
+    const [messages, setMessages] = useState<Message[]>(savedChat?.messages || []);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [isRecording, setIsRecording] = useState(false);
-    const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [selectedImage, setSelectedImage] = useState<{ data: string, mimeType: string } | null>(null);
+    const [selectedImage, setSelectedImage] = useState<{ data: string, mimeType: string, preview: string } | null>(null);
+    const [chatId, setChatId] = useState<string | null>(savedChat?.id || null);
+    const [dbError, setDbError] = useState<string | null>(null);
     
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const reportRef = useRef<HTMLDivElement>(null);
     const chatRef = useRef<any>(null);
-    const recognitionRef = useRef<any>(null);
 
     useEffect(() => {
         const initChat = async () => {
-            try {
-                const apiKey = process.env.API_KEY;
-                if (!apiKey || apiKey === 'undefined' || apiKey === '') {
-                    setError("Chave de API não configurada. Verifique as variáveis de ambiente.");
-                    return;
+            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+            chatRef.current = ai.chats.create({
+                model: 'gemini-3-flash-preview',
+                config: { 
+                    systemInstruction: "Você é o 'Mecânico Virtual' veterano da AutoIntel. Use termos práticos de oficina. Seja extremamente direto, use bullet points para passos técnicos e ajude o mecânico a resolver problemas complexos na bancada. Se ver uma imagem, descreva o estado técnico da peça. Se houver histórico anterior, considere-o no contexto." 
                 }
-
-                const ai = new GoogleGenAI({ apiKey });
-                chatRef.current = ai.chats.create({
-                    model: 'gemini-3-flash-preview',
-                    config: { 
-                        systemInstruction: "Você é o Mecânico Virtual Expert do AutoIntel AI. Forneça diagnósticos técnicos de alta precisão de forma que um leigo entenda. Analise imagens detalhadamente caso o usuário envie. Seja direto, utilize negrito para peças e termos importantes. Comece saudando o cliente e peça Marca/Modelo/Ano se ele não informar." 
-                    }
-                });
-            } catch (err) {
-                console.error("Erro ao inicializar chat:", err);
-                setError("Falha ao conectar com o motor neural.");
-            }
+            });
         };
-
         initChat();
-
-        return () => {
-            if (recognitionRef.current) {
-                recognitionRef.current.stop();
-            }
-        };
     }, []);
 
-    useEffect(() => { 
-        if (messages.length > 0) {
-            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); 
-        }
-    }, [messages]);
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [messages, isLoading]);
 
-    const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatTime = () => {
+        return new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    };
+
+    const handleFileClick = () => fileInputRef.current?.click();
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
-
         const reader = new FileReader();
         reader.onloadend = () => {
             const base64Data = (reader.result as string).split(',')[1];
-            setSelectedImage({
-                data: base64Data,
-                mimeType: file.type
-            });
+            setSelectedImage({ data: base64Data, mimeType: file.type, preview: reader.result as string });
         };
         reader.readAsDataURL(file);
+        e.target.value = '';
     };
 
-    const handleSend = async (textOverride?: string) => {
-        const userText = textOverride || input.trim();
-        if (!userText && !selectedImage) return;
-        
-        const currentImage = selectedImage;
-        const userMsgId = Date.now().toString();
-        
-        setMessages(prev => [...prev, { 
-            id: userMsgId, 
-            role: 'user', 
-            text: userText,
-            image: currentImage ? `data:${currentImage.mimeType};base64,${currentImage.data}` : undefined
-        }]);
+    const saveChatToSupabase = async (updatedMessages: Message[]) => {
+        if (!user) return;
+        try {
+            const title = updatedMessages.find(m => m.role === 'user')?.text?.substring(0, 50) || "Consulta Técnica";
+            if (chatId) {
+                const { error } = await supabase.from('chat_history').update({
+                    messages: updatedMessages,
+                    last_updated: new Date().toISOString()
+                }).eq('id', chatId);
+                if (error) throw error;
+            } else {
+                const { data, error } = await supabase.from('chat_history').insert([{
+                    user_id: user.id,
+                    title,
+                    messages: updatedMessages
+                }]).select();
+                if (error) throw error;
+                if (data?.[0]) setChatId(data[0].id);
+            }
+        } catch (err: any) { 
+            console.error("Erro ao salvar chat:", err);
+            if (err.message?.includes("cache") || err.message?.includes("not found")) {
+                setDbError("Aviso: Histórico desativado localmente. Configure o banco via SQL.");
+            }
+        }
+    };
 
+    const handleSend = async () => {
+        if (!input.trim() && !selectedImage) return;
+        
+        const userText = input.trim();
+        const currentImage = selectedImage;
+        const timestamp = formatTime();
+        
+        const newMessages: Message[] = [...messages, { 
+            id: Date.now().toString(), 
+            role: 'user', 
+            text: userText, 
+            image: currentImage?.preview,
+            timestamp
+        }];
+        
+        setMessages(newMessages);
         setInput('');
         setSelectedImage(null);
         setIsLoading(true);
 
         try {
-            const aiMsgId = (Date.now() + 1).toString();
-            setMessages(prev => [...prev, { id: aiMsgId, role: 'model', text: '' }]);
-
-            let fullText = '';
+            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+            let responseText = '';
             
             if (currentImage) {
-                const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
                 const result = await ai.models.generateContent({
                     model: 'gemini-3-flash-preview',
-                    contents: {
-                        parts: [
-                            { text: userText || "Analise esta imagem do meu veículo." },
-                            { inlineData: { data: currentImage.data, mimeType: currentImage.mimeType } }
-                        ]
-                    },
-                    config: {
-                        systemInstruction: "Você é o Mecânico Virtual Expert do AutoIntel AI. Explique o diagnóstico da imagem de forma simples para o dono do carro."
-                    }
+                    contents: { parts: [{ text: userText || "Analise tecnicamente." }, { inlineData: { data: currentImage.data, mimeType: currentImage.mimeType } }] }
                 });
-                
-                fullText = result.text || "Desculpe, não consegui analisar esta imagem.";
-                setMessages(prev => prev.map(msg => msg.id === aiMsgId ? { ...msg, text: fullText } : msg));
+                responseText = result.text || "Sem análise disponível.";
             } else {
-                const result = await chatRef.current.sendMessageStream({ message: userText });
-                for await (const chunk of result) {
-                    const c = chunk as GenerateContentResponse;
-                    if (c.text) {
-                        fullText += c.text;
-                        setMessages(prev => prev.map(msg => msg.id === aiMsgId ? { ...msg, text: fullText } : msg));
-                    }
-                }
+                const result = await chatRef.current.sendMessage({ message: userText });
+                responseText = result.text || "Sem resposta do sistema.";
             }
+
+            const finalMessages: Message[] = [...newMessages, { 
+                id: (Date.now() + 1).toString(), 
+                role: 'model', 
+                text: responseText,
+                timestamp: formatTime()
+            }];
+            setMessages(finalMessages);
+            saveChatToSupabase(finalMessages);
+            
         } catch (e) { 
             console.error(e);
-            setError("Erro ao processar sua solicitação.");
-        } finally { 
-            setIsLoading(false); 
-        }
+            setMessages(prev => [...prev, { 
+                id: Date.now().toString(), 
+                role: 'model', 
+                text: "Erro técnico. Verifique a conexão com a central.",
+                timestamp: formatTime()
+            }]);
+        } finally { setIsLoading(false); }
     };
-
-    const toggleVoiceInput = () => {
-        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-        if (!SpeechRecognition) {
-            alert('O reconhecimento de voz não é suportado neste navegador.');
-            return;
-        }
-        if (isRecording) {
-            if (recognitionRef.current) recognitionRef.current.stop();
-            setIsRecording(false);
-            return;
-        }
-        const recognition = new SpeechRecognition();
-        recognitionRef.current = recognition;
-        recognition.lang = 'pt-BR';
-        recognition.onstart = () => setIsRecording(true);
-        recognition.onresult = (event: any) => {
-            const transcript = event.results[0][0].transcript;
-            setInput(transcript);
-            handleSend(transcript);
-        };
-        recognition.onerror = () => setIsRecording(false);
-        recognition.onend = () => setIsRecording(false);
-        recognition.start();
-    };
-
-    const handleDownloadPDF = async () => {
-        if (messages.length === 0 || !reportRef.current) return;
-        setIsGeneratingPdf(true);
-        try {
-            const element = reportRef.current;
-            const opt = {
-                margin: [10, 10, 10, 10],
-                filename: `AutoIntel_Diagnostico_Chat_${new Date().getTime()}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true, backgroundColor: '#0B0F1A' },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-            };
-            // @ts-ignore
-            await html2pdf().set(opt).from(element).save();
-        } catch (error) { console.error(error); } finally { setIsGeneratingPdf(false); }
-    };
-
-    if (error) return (
-        <div className="flex flex-col h-screen items-center justify-center bg-background-dark text-white p-10 text-center">
-            <span className="material-symbols-outlined text-accent-red text-7xl mb-6">api_off</span>
-            <h2 className="text-2xl font-black uppercase mb-4 max-w-md">{error}</h2>
-            <button onClick={() => window.location.reload()} className="bg-primary px-8 py-3 rounded-xl font-black uppercase tracking-widest text-xs">Recarregar</button>
-        </div>
-    );
 
     return (
-        <div className="flex flex-col h-full bg-background-dark text-white relative page-transition overflow-hidden">
-            <header className="sticky top-0 z-40 glass p-4 md:px-12 flex items-center justify-between no-print shadow-2xl">
-                <div className="flex items-center gap-3 md:gap-6">
-                    <button onClick={() => navigate(-1)} className="p-2 md:p-3 bg-white/5 rounded-xl md:rounded-2xl hover:bg-white/10 transition-all border border-white/5">
-                        <span className="material-symbols-outlined text-[24px] md:text-[30px] font-bold">arrow_back</span>
+        <div className="flex flex-col h-full bg-background-dark text-white relative safe-top overflow-hidden">
+            <header className="sticky top-0 z-40 glass p-4 md:px-12 flex items-center justify-between border-b border-white/5 backdrop-blur-3xl">
+                <div className="flex items-center gap-4">
+                    <button onClick={() => navigate(-1)} className="md:hidden size-10 flex items-center justify-center text-slate-400">
+                        <span className="material-symbols-outlined">arrow_back</span>
                     </button>
-                    <div className="flex items-center gap-3 md:gap-4">
-                        <div className="size-10 md:size-14 rounded-xl md:rounded-2xl bg-primary/20 flex items-center justify-center text-primary border border-primary/20">
-                            <span className="material-symbols-outlined text-[24px] md:text-[32px] font-bold">smart_toy</span>
-                        </div>
-                        <div>
-                            <h2 className="text-lg md:text-2xl font-black tracking-tight leading-tight">Mecânico Virtual</h2>
-                            <p className="text-[8px] md:text-[10px] text-accent-green font-black uppercase tracking-[0.2em] mt-0.5 flex items-center gap-1.5"><span className="size-1.5 bg-accent-green rounded-full animate-pulse"></span> Sistema Ativo</p>
+                    <div className="size-10 md:size-12 rounded-xl bg-orange-600 flex items-center justify-center text-white shadow-lg shadow-orange-600/20">
+                        <span className="material-symbols-outlined text-2xl md:text-3xl font-bold">smart_toy</span>
+                    </div>
+                    <div>
+                        <h2 className="text-sm md:text-xl font-black tracking-tight uppercase italic leading-none">Mecânico Virtual</h2>
+                        <div className="flex items-center gap-1.5 mt-1">
+                            <span className="size-1.5 bg-green-500 rounded-full animate-pulse"></span>
+                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">
+                                {savedChat ? "Histórico em exibição" : "Consultoria Ativa"}
+                            </span>
                         </div>
                     </div>
                 </div>
-                {messages.length > 0 && (
-                    <button onClick={handleDownloadPDF} disabled={isGeneratingPdf} className="flex items-center gap-2 bg-white/5 border border-white/10 px-4 py-2.5 rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-white/10 transition-all">
-                        <span className="material-symbols-outlined text-[20px]">{isGeneratingPdf ? 'progress_activity' : 'picture_as_pdf'}</span>
-                        <span className="hidden md:inline">Exportar PDF</span>
-                    </button>
-                )}
+                <button 
+                    onClick={() => {
+                        setMessages([]); 
+                        setChatId(null);
+                        setDbError(null);
+                        navigate(AppRoute.REPORT_ISSUE, { state: {}, replace: true });
+                    }} 
+                    className="size-10 rounded-xl bg-white/5 flex items-center justify-center text-slate-500 hover:text-orange-500 transition-colors"
+                    title="Nova Consulta"
+                >
+                    <span className="material-symbols-outlined">edit_note</span>
+                </button>
             </header>
 
-            <div ref={reportRef} className="flex-1 overflow-y-auto p-4 md:p-12 space-y-6 md:space-y-10 pb-96 no-scrollbar" style={{ backgroundColor: '#0B0F1A' }}>
-                {messages.length === 0 ? (
-                    <div className="flex flex-col items-center justify-start min-h-full py-6 md:py-12 animate-fade-in px-4">
-                        <div className="max-w-4xl w-full">
-                            
-                            {/* Card Único de Protocolo Simplificado */}
-                            <div className="bg-surface-dark/60 border-2 border-primary/30 rounded-[2.5rem] md:rounded-[4rem] overflow-hidden shadow-[0_0_60px_rgba(19,91,236,0.15)]">
-                                
-                                {/* Header do Card */}
-                                <div className="bg-primary/10 p-8 md:p-12 border-b border-primary/20 flex items-center gap-6">
-                                    <div className="size-16 md:size-24 rounded-3xl bg-primary flex items-center justify-center text-white shadow-lg">
-                                        <span className="material-symbols-outlined text-4xl md:text-6xl font-bold">assignment_turned_in</span>
-                                    </div>
-                                    <div>
-                                        <h3 className="text-2xl md:text-5xl font-black uppercase italic tracking-tighter">Protocolo de Diagnóstico</h3>
-                                        <p className="text-sm md:text-2xl text-primary font-bold uppercase tracking-widest mt-1">Como ter o melhor laudo</p>
-                                    </div>
-                                </div>
+            {dbError && (
+                <div className="bg-orange-600/10 border-b border-orange-600/20 px-4 py-2 text-[9px] font-black text-orange-500 uppercase tracking-widest flex items-center gap-2">
+                    <span className="material-symbols-outlined text-sm">database</span>
+                    {dbError}
+                </div>
+            )}
 
-                                {/* Conteúdo do Card em Lista Simplificada */}
-                                <div className="p-8 md:p-14 space-y-8 md:space-y-12">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
-                                        
-                                        <div className="flex gap-5 md:gap-7 items-start">
-                                            <span className="material-symbols-outlined text-primary text-3xl md:text-5xl shrink-0">directions_car</span>
-                                            <div className="space-y-1">
-                                                <h4 className="text-lg md:text-3xl font-black text-white uppercase tracking-tight">01. Dados do Carro</h4>
-                                                <p className="text-sm md:text-2xl text-slate-400 font-bold leading-snug">Diga a **marca, modelo e o ano** do seu veículo.</p>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex gap-5 md:gap-7 items-start">
-                                            <span className="material-symbols-outlined text-accent-yellow text-3xl md:text-5xl shrink-0">photo_camera</span>
-                                            <div className="space-y-1">
-                                                <h4 className="text-lg md:text-3xl font-black text-white uppercase tracking-tight">02. Mande Fotos</h4>
-                                                <p className="text-sm md:text-2xl text-slate-400 font-bold leading-snug">Envie fotos de **vazamentos** ou de **luzes acesas no painel**.</p>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex gap-5 md:gap-7 items-start">
-                                            <span className="material-symbols-outlined text-accent-green text-3xl md:text-5xl shrink-0">qr_code_scanner</span>
-                                            <div className="space-y-1">
-                                                <h4 className="text-lg md:text-3xl font-black text-white uppercase tracking-tight">03. Códigos de Erro</h4>
-                                                <p className="text-sm md:text-2xl text-slate-400 font-bold leading-snug">Se passou por scanner, informe o código (Ex: **P0300**).</p>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex gap-5 md:gap-7 items-start">
-                                            <span className="material-symbols-outlined text-accent-red text-3xl md:text-5xl shrink-0">noise_aware</span>
-                                            <div className="space-y-1">
-                                                <h4 className="text-lg md:text-3xl font-black text-white uppercase tracking-tight">04. Barulhos ou Falhas</h4>
-                                                <p className="text-sm md:text-2xl text-slate-400 font-bold leading-snug">Conte o que está sentindo ao dirigir ou barulhos estranhos.</p>
-                                            </div>
-                                        </div>
-
-                                    </div>
-
-                                    {/* Footer do Card - Dica Simplificada */}
-                                    <div className="pt-8 md:pt-12 border-t border-white/5 flex flex-col md:flex-row items-center gap-4 md:gap-8 opacity-80">
-                                        <div className="px-4 py-1.5 bg-primary/20 text-primary rounded-full text-[10px] md:text-lg font-black uppercase tracking-[0.2em] italic shrink-0">Dica Útil</div>
-                                        <p className="text-xs md:text-2xl text-slate-300 font-bold text-center md:text-left leading-relaxed">
-                                            Saber a data da **última revisão** ajuda muito a IA a descobrir o problema.
-                                        </p>
-                                    </div>
-                                </div>
+            <div className="flex-1 overflow-y-auto no-scrollbar scroll-smooth">
+                <div className="max-w-4xl mx-auto px-4 md:px-6 py-8 space-y-8 pb-72 md:pb-48">
+                    {messages.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-8">
+                            <div className="size-24 rounded-4xl bg-white/5 flex items-center justify-center border border-white/10">
+                                <span className="material-symbols-outlined text-5xl text-orange-500">forum</span>
                             </div>
-
-                            {/* Indicador de Ação Abaixo */}
-                            <div className="mt-12 flex flex-col items-center gap-4 animate-bounce opacity-40">
-                                <p className="text-[10px] md:text-xl font-black uppercase tracking-[0.5em] text-primary">Escreva sua dúvida abaixo</p>
-                                <span className="material-symbols-outlined text-3xl md:text-5xl">keyboard_double_arrow_down</span>
+                            <div className="space-y-2">
+                                <h3 className="text-2xl md:text-3xl font-black uppercase italic tracking-tighter">Bancada Digital</h3>
+                                <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">Tire dúvidas técnicas em tempo real</p>
                             </div>
-
-                        </div>
-                    </div>
-                ) : (
-                    messages.map((msg) => (
-                        <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                            <div className={`max-w-[95%] sm:max-w-[85%] md:max-w-[75%] rounded-2xl md:rounded-[3rem] p-6 md:p-12 shadow-2xl border ${msg.role === 'user' ? 'bg-primary text-white border-primary/20 rounded-tr-none' : 'bg-surface-dark text-slate-100 border-white/5 rounded-tl-none'}`}>
-                                {msg.image && (
-                                    <div className="mb-6 rounded-2xl overflow-hidden border-2 border-white/10 shadow-lg">
-                                        <img src={msg.image} alt="Upload" className="w-full max-h-[600px] object-cover" />
-                                    </div>
-                                )}
-                                {msg.role === 'model' && (
-                                    <div className="flex gap-3 items-center mb-6">
-                                        <span className="material-symbols-outlined text-primary text-[24px] md:text-[32px] font-black">build</span>
-                                        <span className="text-[12px] md:text-[14px] font-black text-primary uppercase tracking-[0.4em]">Parecer do Mecânico</span>
-                                    </div>
-                                )}
-                                <div className="text-base md:text-3xl leading-relaxed whitespace-pre-wrap font-bold">
-                                    {msg.text || (isLoading && !msg.image && <div className="flex gap-2 h-8 items-center"><div className="size-3 bg-slate-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div><div className="size-3 bg-slate-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div><div className="size-3 bg-slate-500 rounded-full animate-bounce"></div></div>)}
-                                </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full max-w-lg">
+                                {[
+                                    { t: 'Torques de Motor', s: 'Linha GM Ecotec' },
+                                    { t: 'Esquema Elétrico', s: 'Injeção VW TSI' },
+                                    { t: 'Análise de Peça', s: 'Foto de Pastilha' },
+                                    { t: 'P0300 Intermitente', s: 'Diagnóstico Passo a Passo' }
+                                ].map((item, i) => (
+                                    <button 
+                                        key={i} 
+                                        onClick={() => setInput(`${item.t} ${item.s}`)} 
+                                        className="group p-4 rounded-2xl bg-surface-dark/40 border border-white/5 hover:border-orange-500/30 transition-all text-left flex justify-between items-center"
+                                    >
+                                        <div>
+                                            <p className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-1">{item.t}</p>
+                                            <p className="text-xs font-bold text-slate-300">{item.s}</p>
+                                        </div>
+                                        <span className="material-symbols-outlined text-slate-700 group-hover:text-orange-500 transition-colors">send</span>
+                                    </button>
+                                ))}
                             </div>
                         </div>
-                    ))
-                )}
-                <div ref={messagesEndRef} className="no-print" />
+                    ) : (
+                        messages.map((msg) => (
+                            <div key={msg.id} className={`flex gap-3 md:gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                                <div className={`size-8 md:size-10 rounded-full shrink-0 flex items-center justify-center ${msg.role === 'user' ? 'bg-orange-600/20 text-orange-500' : 'bg-white/10 text-white'}`}>
+                                    <span className="material-symbols-outlined text-lg md:text-xl">
+                                        {msg.role === 'user' ? 'person' : 'smart_toy'}
+                                    </span>
+                                </div>
+                                <div className={`flex flex-col space-y-1.5 max-w-[85%] md:max-w-[75%] ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                                    <div className={`relative rounded-3xl p-4 md:p-5 shadow-2xl ${
+                                        msg.role === 'user' 
+                                        ? 'bg-gradient-to-br from-orange-600 to-orange-700 text-white rounded-tr-none' 
+                                        : 'bg-surface-dark/80 backdrop-blur-xl text-slate-100 border border-white/5 rounded-tl-none'
+                                    }`}>
+                                        {msg.image && (
+                                            <div className="mb-3 rounded-2xl overflow-hidden">
+                                                <img src={msg.image} className="w-full h-auto object-cover max-h-80" alt="Anexo" />
+                                            </div>
+                                        )}
+                                        <div className="text-sm md:text-base font-bold whitespace-pre-wrap leading-relaxed">{msg.text}</div>
+                                    </div>
+                                    <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest px-2">{msg.timestamp}</span>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                    {isLoading && (
+                        <div className="flex gap-4">
+                            <div className="size-8 md:size-10 rounded-full bg-white/5 flex items-center justify-center text-slate-700">
+                                <span className="material-symbols-outlined text-xl">smart_toy</span>
+                            </div>
+                            <TypingIndicator />
+                        </div>
+                    )}
+                    <div ref={messagesEndRef} />
+                </div>
             </div>
 
-            <div className="fixed bottom-[72px] md:bottom-0 left-0 right-0 p-4 md:p-12 bg-gradient-to-t from-background-dark via-background-dark/95 to-transparent z-50 no-print">
-                <div className="max-w-6xl mx-auto space-y-4">
-                    
-                    <div className="flex items-center gap-3 px-2 md:px-4 animate-fade-in">
-                        <span className="size-2 md:size-3 bg-primary rounded-full animate-pulse"></span>
-                        <h4 className="text-xs md:text-xl font-black uppercase tracking-[0.3em] text-primary">Converse com o Mecânico Virtual</h4>
-                    </div>
-
+            <div className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] md:bottom-0 left-0 right-0 p-4 md:p-8 bg-gradient-to-t from-background-dark via-background-dark to-transparent z-40">
+                <div className="max-w-4xl mx-auto">
                     {selectedImage && (
-                        <div className="flex items-center gap-4 bg-primary/10 p-4 rounded-[2rem] border-2 border-primary/30 animate-fade-in shadow-[0_0_30px_rgba(19,91,236,0.1)]">
-                            <div className="relative size-20 md:size-32 rounded-2xl overflow-hidden border-2 border-primary shadow-2xl">
-                                <img src={`data:${selectedImage.mimeType};base64,${selectedImage.data}`} className="w-full h-full object-cover" alt="Preview" />
-                                <button onClick={() => setSelectedImage(null)} className="absolute top-2 right-2 bg-accent-red text-white rounded-full size-8 flex items-center justify-center hover:scale-110 transition-transform">
-                                    <span className="material-symbols-outlined text-lg">close</span>
-                                </button>
-                            </div>
-                            <div className="flex-1">
-                                <p className="text-xs md:text-xl font-black text-primary uppercase tracking-widest leading-none">Arquivo Técnico Pronto</p>
-                                <p className="text-[10px] md:text-sm text-slate-500 font-bold mt-1">Análise visual neural aguardando comando.</p>
+                        <div className="mb-3 p-3 bg-surface-dark border border-orange-500/50 rounded-2xl w-fit flex gap-4 items-center animate-in slide-in-from-bottom-2">
+                            <img src={selectedImage.preview} className="size-16 rounded-xl object-cover" alt="Preview" />
+                            <div className="flex flex-col">
+                                <span className="text-[9px] font-black text-orange-500 uppercase tracking-widest">Anexo Carregado</span>
+                                <button onClick={() => setSelectedImage(null)} className="text-xs font-bold text-slate-500 hover:text-white transition-colors text-left uppercase">Remover</button>
                             </div>
                         </div>
                     )}
-
-                    <div className="flex items-end gap-3 md:gap-8 bg-surface-dark/80 p-3 md:p-6 rounded-[2.5rem] md:rounded-[4rem] border-2 border-white/10 shadow-2xl backdrop-blur-3xl group-focus-within:border-primary/40 transition-all">
-                        <input type="file" ref={fileInputRef} onChange={handleImageSelect} accept="image/*" className="hidden" />
-                        <button onClick={() => fileInputRef.current?.click()} className="size-14 md:size-28 rounded-2xl md:rounded-[3rem] bg-background-dark text-slate-500 border-2 border-white/5 hover:border-primary/30 hover:text-primary transition-all flex items-center justify-center shrink-0 shadow-2xl group">
-                            <span className="material-symbols-outlined text-[28px] md:text-[52px] font-black group-hover:scale-110 transition-transform">photo_camera</span>
-                        </button>
-
-                        <div className="relative flex-1">
-                            <textarea
-                                value={input}
-                                onChange={(e) => setInput(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSend())}
-                                placeholder="Diga o carro e o que está acontecendo..."
-                                className="w-full rounded-2xl md:rounded-[3rem] border-2 border-white/5 bg-background-dark/50 py-4 md:py-9 pl-6 md:pl-14 pr-16 md:pr-28 text-base md:text-3xl text-white placeholder-slate-700 focus:border-primary focus:ring-[15px] focus:ring-primary/10 outline-none resize-none max-h-32 md:max-h-60 min-h-[56px] md:min-h-[110px] transition-all font-bold"
-                                rows={1}
-                            />
-                            <button onClick={toggleVoiceInput} className={`absolute right-3 md:right-10 top-1/2 -translate-y-1/2 size-10 md:size-20 rounded-full flex items-center justify-center transition-all ${isRecording ? 'bg-accent-red animate-pulse text-white shadow-[0_0_30px_#EF4444]' : 'text-primary hover:bg-primary/10'}`}>
-                                <span className="material-symbols-outlined text-[20px] md:text-[42px] font-black">{isRecording ? 'graphic_eq' : 'mic'}</span>
-                            </button>
-                        </div>
-
+                    <div className="relative flex items-center gap-3 bg-surface-dark/90 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-2 md:p-3 shadow-3xl">
+                        <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
                         <button 
-                            onClick={() => handleSend()}
-                            disabled={(!input.trim() && !selectedImage) || isLoading}
-                            className="size-14 md:size-28 rounded-2xl md:rounded-[3rem] bg-primary text-white shadow-[0_10px_40px_rgba(19,91,236,0.4)] hover:scale-110 active:scale-95 disabled:opacity-30 transition-all flex items-center justify-center group shrink-0"
+                            onClick={handleFileClick} 
+                            className="size-10 md:size-12 rounded-full flex items-center justify-center text-slate-400 hover:text-orange-500 hover:bg-orange-500/10 transition-all"
                         >
-                            <span className="material-symbols-outlined text-[28px] md:text-[52px] font-black group-hover:rotate-12 transition-transform">{isLoading ? 'sync' : 'send'}</span>
+                            <span className="material-symbols-outlined text-2xl md:text-3xl">photo_camera</span>
+                        </button>
+                        <textarea 
+                            value={input} 
+                            onChange={(e) => setInput(e.target.value)} 
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleSend();
+                                }
+                            }}
+                            placeholder="Peça torques, óleos ou descreva o BO..." 
+                            className="flex-1 bg-transparent py-3 px-2 text-sm md:text-base text-white outline-none resize-none max-h-32 font-bold placeholder:text-slate-700" 
+                            rows={1} 
+                        />
+                        <button 
+                            onClick={handleSend} 
+                            disabled={isLoading || (!input.trim() && !selectedImage)} 
+                            className={`size-10 md:size-12 rounded-full flex items-center justify-center shadow-lg transition-all ${
+                                input.trim() || selectedImage 
+                                ? 'bg-orange-600 text-white shadow-orange-600/30' 
+                                : 'bg-white/5 text-slate-800'
+                            }`}
+                        >
+                            <span className="material-symbols-outlined font-black">
+                                {isLoading ? 'hourglass' : 'send'}
+                            </span>
                         </button>
                     </div>
                 </div>

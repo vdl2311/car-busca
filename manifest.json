@@ -2,23 +2,25 @@
 {
   "name": "AutoIntel AI",
   "short_name": "AutoIntel",
-  "description": "Inteligência Automotiva Superior",
-  "start_url": "/",
+  "description": "Plataforma de Inteligência Automotiva Superior",
+  "start_url": "/?source=pwa",
   "display": "standalone",
   "background_color": "#0B0F1A",
-  "theme_color": "#135bec",
+  "theme_color": "#0B0F1A",
   "orientation": "portrait",
+  "categories": ["productivity", "utilities"],
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/1043/1043003.png",
+      "src": "https://cdn-icons-png.flaticon.com/512/11659/11659616.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/1043/1043003.png",
+      "src": "https://cdn-icons-png.flaticon.com/512/11659/11659616.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     }
   ]
 }

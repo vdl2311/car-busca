@@ -15,19 +15,16 @@ import Sidebar from './components/Sidebar';
 
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const location = useLocation();
-    
-    // Auth pages don't need the main app shell
     const isAuthPage = [AppRoute.WELCOME, AppRoute.LOGIN].includes(location.pathname as AppRoute);
     
     if (isAuthPage) {
         return (
-            <div className="min-h-screen w-full bg-background-light dark:bg-background-dark">
+            <div className="min-h-screen w-full bg-background-dark">
                 {children}
             </div>
         );
     }
 
-    // Pages that show the bottom navigation on mobile
     const showBottomNav = [
         AppRoute.HOME,
         AppRoute.PROFILE,
@@ -36,7 +33,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     ].includes(location.pathname as AppRoute);
 
     return (
-        <div className="flex min-h-screen w-full bg-background-light dark:bg-background-dark text-slate-900 dark:text-white">
+        <div className="flex min-h-screen w-full bg-background-dark text-white">
             <Sidebar />
             <div className="flex-1 flex flex-col relative w-full overflow-x-hidden">
                 <main className={`flex-1 w-full max-w-7xl mx-auto ${showBottomNav ? 'pb-20 md:pb-6' : 'pb-6'}`}>

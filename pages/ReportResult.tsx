@@ -1,22 +1,10 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { AppRoute } from '../types';
+import { AppRoute, ReportData } from '../types';
 import { GoogleGenAI, Type } from '@google/genai';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
-
-interface DefectItem { id: string; title: string; description: string; severity: string; }
-interface Alternative { model: string; reason: string; }
-interface Verdict { status: string; summary: string; }
-interface UserComment { name: string; role: string; text: string; source: string; }
-interface ReportData { 
-    score: number; 
-    verdict: Verdict; 
-    defects: DefectItem[]; 
-    alternatives: Alternative[]; 
-    comments: UserComment[]; 
-}
 
 const ReportResult: React.FC = () => {
     const navigate = useNavigate();
@@ -24,272 +12,234 @@ const ReportResult: React.FC = () => {
     const { user } = useAuth();
     const reportRef = useRef<HTMLDivElement>(null);
     
-    const state = location.state || {};
-    const { brand, model, version, year, km, savedReportData } = state;
-    
-    const [reportData, setReportData] = useState<ReportData | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const { 
+        brand, model, year, km, 
+        plate, engine, symptoms,
+        savedReportData 
+    } = location.state || {};
+
+    const [reportData, setReportData] = useState<ReportData | null>(savedReportData || null);
+    const [loading, setLoading] = useState(!savedReportData);
     const [isSaving, setIsSaving] = useState(false);
-    const [isSaved, setIsSaved] = useState(false);
-    const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+    const [isSynced, setIsSynced] = useState(!!savedReportData);
+    const [saveError, setSaveError] = useState<string | null>(null);
 
-    // Efeito para buscar o laudo inicial
     useEffect(() => {
-        const fetchReport = async () => {
-            if (savedReportData) { 
-                setReportData(savedReportData); 
-                setLoading(false); 
-                setIsSaved(true); // Se veio do histórico, já está salvo
-                return; 
-            }
+        if (!brand && !savedReportData) {
+            navigate(AppRoute.HOME);
+            return;
+        }
 
-            if (!brand || !model) {
-                setError("Dados do veículo não encontrados. Por favor, reinicie a busca no menu Início.");
-                setLoading(false);
-                return;
-            }
+        if (savedReportData) {
+            setLoading(false);
+            return;
+        }
 
+        const fetchAndSaveReport = async () => {
             setLoading(true);
-            setError(null);
+            setSaveError(null);
             try {
-                const apiKey = process.env.API_KEY;
-                if (!apiKey || apiKey === 'undefined' || apiKey === '') {
-                    throw new Error("API_KEY_MISSING");
-                }
-
-                const ai = new GoogleGenAI({ apiKey });
-                const prompt = `Gere um laudo técnico para o veículo: ${brand} ${model} ${version || ''} ${year}. Quilometragem: ${km || 'não informada'}. 
-                Retorne um JSON com:
-                1. Score (0-10)
-                2. Veredito (status e sumário)
-                3. 3 Defeitos crônicos reais
-                4. 2 Alternativas de compra
-                5. 3 Comentários curtos e relevantes (1 de mecânico especialista e 2 de proprietários reais). 
-                IMPORTANTE: Especifique a FONTE/ORIGEM da informação.`;
+                const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+                
+                const prompt = `Gere um laudo técnico completo para um ${brand} ${model} ${year} (${engine}) com ${km} KM. Sintomas relatados: ${symptoms || 'Nenhum sintoma específico'}.`;
 
                 const response = await ai.models.generateContent({
                     model: 'gemini-3-flash-preview',
                     contents: prompt,
                     config: {
-                        systemInstruction: "Você é o Engenheiro Chefe da AutoIntel AI. Forneça diagnósticos técnicos de alta fidelidade em JSON.",
+                        systemInstruction: `Você é um Mecânico Master veterano. Analise os dados e retorne APENAS o JSON estruturado para visualização em uma oficina.`,
                         responseMimeType: "application/json",
                         responseSchema: {
                             type: Type.OBJECT,
                             properties: {
                                 score: { type: Type.NUMBER },
-                                verdict: { type: Type.OBJECT, properties: { status: { type: Type.STRING }, summary: { type: Type.STRING } }, required: ["status", "summary"] },
-                                defects: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { id: { type: Type.STRING }, title: { type: Type.STRING }, description: { type: Type.STRING }, severity: { type: Type.STRING } } } },
-                                alternatives: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { model: { type: Type.STRING }, reason: { type: Type.STRING } } } },
-                                comments: { 
+                                technicalSpecs: {
+                                    type: Type.OBJECT,
+                                    properties: {
+                                        oilType: { type: Type.STRING },
+                                        oilCapacity: { type: Type.STRING },
+                                        coolantType: { type: Type.STRING },
+                                        tire_pressure: { type: Type.STRING },
+                                        wheelTorque: { type: Type.STRING }
+                                    }
+                                },
+                                verdict: { 
+                                    type: Type.OBJECT, 
+                                    properties: { status: { type: Type.STRING }, summary: { type: Type.STRING }, technicalWarning: { type: Type.STRING } }
+                                },
+                                defects: { 
                                     type: Type.ARRAY, 
                                     items: { 
                                         type: Type.OBJECT, 
-                                        properties: { 
-                                            name: { type: Type.STRING }, 
-                                            role: { type: Type.STRING }, 
-                                            text: { type: Type.STRING },
-                                            source: { type: Type.STRING }
-                                        },
-                                        required: ["name", "role", "text", "source"]
+                                        properties: { title: { type: Type.STRING }, description: { type: Type.STRING }, severity: { type: Type.STRING }, repairProcedure: { type: Type.STRING } } 
                                     } 
+                                },
+                                maintenanceRoadmap: {
+                                    type: Type.ARRAY,
+                                    items: {
+                                        type: Type.OBJECT,
+                                        properties: { km: { type: Type.STRING }, items: { type: Type.ARRAY, items: { type: Type.STRING } }, estimatedLaborTime: { type: Type.STRING } }
+                                    }
                                 }
-                            },
-                            required: ["score", "verdict", "defects", "alternatives", "comments"]
+                            }
                         }
                     }
                 });
                 
                 if (response.text) {
-                    const data = JSON.parse(response.text);
-                    setReportData(data);
-                } else {
-                    throw new Error("EMPTY_RESPONSE");
+                    const parsedData = JSON.parse(response.text);
+                    setReportData(parsedData);
+                    
+                    if (user?.id) {
+                        setIsSaving(true);
+                        const { error: supabaseError } = await supabase.from('reports').insert([{
+                            user_id: user.id,
+                            brand,
+                            model,
+                            year,
+                            km,
+                            score: parsedData.score || 0,
+                            report_data: parsedData
+                        }]);
+                        
+                        if (supabaseError) {
+                            console.error("Erro Supabase Insert:", supabaseError);
+                            if (supabaseError.message.includes("cache") || supabaseError.message.includes("not found")) {
+                                setSaveError("Erro de Banco: Tabela 'reports' não existe. Execute o SQL no README.");
+                            } else {
+                                setSaveError(`Falha na Nuvem: ${supabaseError.message}`);
+                            }
+                        } else {
+                            setIsSynced(true);
+                        }
+                        setIsSaving(false);
+                    }
                 }
             } catch (e: any) { 
-                console.error("Erro ao gerar laudo:", e);
-                setError(e.message === "API_KEY_MISSING" ? "Chave de API não configurada." : "Erro na análise neural.");
+                console.error("Erro Geral ReportResult:", e); 
+                setSaveError("Erro ao processar inteligência do laudo.");
             } finally { 
                 setLoading(false); 
             }
         };
-
-        fetchReport();
-    }, [brand, model, version, year, km, savedReportData]);
-
-    // EFEITO CRÍTICO: Salvamento automático reativo
-    // Garante que salve assim que o usuário estiver logado E o laudo estiver pronto
-    useEffect(() => {
-        const autoSave = async () => {
-            if (!user || !reportData || isSaved || isSaving || savedReportData) return;
-            
-            setIsSaving(true);
-            try {
-                const { error: insertError } = await supabase.from('reports').insert({
-                    user_id: user.id,
-                    brand,
-                    model,
-                    version,
-                    year,
-                    km,
-                    score: reportData.score,
-                    report_data: reportData
-                });
-
-                if (!insertError) {
-                    setIsSaved(true);
-                    console.log("Laudo salvo automaticamente com sucesso.");
-                } else {
-                    console.error("Erro Supabase ao salvar:", insertError);
-                }
-            } catch (e) {
-                console.error("Exceção ao salvar automaticamente:", e);
-            } finally {
-                setIsSaving(false);
-            }
-        };
-
-        autoSave();
-    }, [user, reportData, isSaved, isSaving, savedReportData, brand, model, version, year, km]);
-
-    const handleDownloadPDF = async () => {
-        if (!reportData || !reportRef.current) return;
-        setIsGeneratingPdf(true);
-        try {
-            const element = reportRef.current;
-            const opt = {
-                margin: [10, 10, 10, 10],
-                filename: `AutoIntel_Report_${brand}_${model}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true, backgroundColor: '#0B0F1A' },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-            };
-            // @ts-ignore
-            await html2pdf().set(opt).from(element).save();
-        } catch (error) {
-            console.error("Erro ao gerar PDF:", error);
-        } finally {
-            setIsGeneratingPdf(false);
-        }
-    };
+        fetchAndSaveReport();
+    }, [brand, model, year, km, engine, symptoms, user, savedReportData, navigate]);
 
     if (loading) return (
-        <div className="flex flex-col h-screen items-center justify-center bg-background-dark text-white p-10">
-            <div className="size-24 border-8 border-primary border-t-transparent rounded-full animate-spin mb-10"></div>
-            <h2 className="text-3xl font-black uppercase italic text-center">Analisando Componentes...</h2>
+        <div className="flex flex-col h-screen items-center justify-center bg-background-dark text-white p-12 text-center">
+            <div className="relative size-48 mb-12">
+                <div className="absolute inset-0 border-[10px] border-orange-500/10 rounded-full"></div>
+                <div className="absolute inset-0 border-[10px] border-orange-500 rounded-full border-t-transparent animate-spin"></div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="material-symbols-outlined text-6xl text-orange-500 animate-pulse">engineering</span>
+                </div>
+            </div>
+            <h2 className="text-3xl font-black uppercase italic tracking-tighter text-orange-500 animate-pulse">Sincronizando Diagnóstico</h2>
+            <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mt-4">Consultando base de dados AutoIntel...</p>
         </div>
     );
 
-    if (error) return (
-        <div className="flex flex-col h-screen items-center justify-center bg-background-dark text-white p-10 text-center">
-            <span className="material-symbols-outlined text-accent-red text-7xl mb-6">error</span>
-            <h2 className="text-2xl font-black uppercase mb-4">{error}</h2>
-            <button onClick={() => navigate(AppRoute.HOME)} className="mt-4 bg-primary px-8 py-3 rounded-xl font-black uppercase tracking-widest text-xs">
-                Voltar ao Início
-            </button>
+    if (!reportData) return (
+        <div className="flex flex-col h-screen items-center justify-center bg-background-dark p-12 text-center">
+            <span className="material-symbols-outlined text-red-500 text-6xl mb-6">error_outline</span>
+            <h2 className="text-2xl font-black uppercase text-white mb-4">Falha ao Gerar Laudo</h2>
+            <p className="text-slate-500 font-bold mb-8 uppercase text-xs">Não foi possível processar as informações técnicas deste veículo.</p>
+            <button onClick={() => navigate(-1)} className="px-12 py-4 bg-white/5 rounded-2xl font-black uppercase tracking-widest text-xs text-white border border-white/10">Voltar para Início</button>
         </div>
     );
-
-    if (!reportData) return null;
 
     return (
-        <div className="flex flex-col min-h-full bg-background-dark text-white pb-10">
-            <header className="sticky top-0 z-50 glass px-6 md:px-12 py-6 border-b border-white/10 flex items-center justify-between backdrop-blur-2xl no-print">
+        <div className="flex flex-col min-h-full bg-background-dark text-white pb-40 safe-top">
+            <header className="sticky top-0 z-50 glass px-6 md:px-16 py-6 border-b border-white/5 flex items-center justify-between backdrop-blur-3xl no-print">
                 <div className="flex items-center gap-6">
-                    <button onClick={() => navigate(-1)} className="p-4 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 transition-all">
-                        <span className="material-symbols-outlined text-3xl font-bold">arrow_back</span>
+                    <button onClick={() => navigate(-1)} className="p-4 bg-white/5 rounded-2xl border border-white/5 hover:bg-white/10">
+                        <span className="material-symbols-outlined font-black">arrow_back</span>
                     </button>
                     <div>
-                        <h1 className="text-xl md:text-3xl font-black uppercase leading-none italic">
-                            {brand} {model}
-                        </h1>
-                        <p className={`text-[10px] md:text-sm font-black uppercase tracking-[0.4em] mt-2 transition-colors ${isSaved ? 'text-accent-green' : 'text-primary'}`}>
-                            {isSaved ? 'LAUDO ARQUIVADO' : isSaving ? 'ARQUIVANDO NA NUVEM...' : 'ANÁLISE NEURAL EM TEMPO REAL'}
-                        </p>
+                        <h1 className="text-xl md:text-3xl font-black uppercase italic tracking-tighter leading-none">{brand} {model}</h1>
+                        <div className="flex items-center gap-3 mt-1">
+                            <p className="text-[10px] font-black text-orange-500 uppercase tracking-widest">{year} • {km} KM</p>
+                            {isSynced ? (
+                                <span className="flex items-center gap-1 text-[9px] font-black text-green-500 uppercase bg-green-500/10 px-2 py-0.5 rounded-md border border-green-500/20">
+                                    <span className="material-symbols-outlined text-[12px]">cloud_done</span> Salvo no Histórico
+                                </span>
+                            ) : saveError ? (
+                                <span className="flex items-center gap-1 text-[9px] font-black text-red-500 uppercase bg-red-500/10 px-2 py-0.5 rounded-md border border-red-500/20">
+                                    <span className="material-symbols-outlined text-[12px]">cloud_off</span> {saveError}
+                                </span>
+                            ) : isSaving ? (
+                                <span className="text-[9px] font-black text-slate-500 uppercase animate-pulse">Salvando...</span>
+                            ) : null}
+                        </div>
                     </div>
                 </div>
-                <div className="flex items-center gap-3">
-                    <button 
-                        onClick={handleDownloadPDF}
-                        disabled={isGeneratingPdf}
-                        className="flex items-center gap-2 bg-white/5 border border-white/10 px-4 py-2 rounded-lg font-black uppercase tracking-widest text-[10px] hover:bg-white/10 transition-all"
-                    >
-                        <span className="material-symbols-outlined text-base">{isGeneratingPdf ? 'progress_activity' : 'picture_as_pdf'}</span>
-                        <span className="hidden md:inline">{isGeneratingPdf ? 'Gerando...' : 'PDF'}</span>
-                    </button>
-                    {isSaved && (
-                        <div className="flex items-center gap-2 bg-accent-green/20 text-accent-green px-4 py-2 rounded-lg font-black uppercase tracking-widest text-[10px] border border-accent-green/20 shadow-[0_0_15px_rgba(16,185,129,0.2)]">
-                            <span className="material-symbols-outlined text-base">cloud_done</span>
-                            <span className="hidden md:inline">Salvo</span>
-                        </div>
-                    )}
-                </div>
+                <button onClick={() => window.print()} className="flex items-center gap-2 px-6 py-4 bg-orange-600 rounded-2xl text-white font-black uppercase tracking-widest text-xs shadow-xl shadow-orange-600/20 active:scale-95 transition-all">
+                    <span className="material-symbols-outlined text-xl">picture_as_pdf</span>
+                    <span className="hidden md:inline">Relatório PDF</span>
+                </button>
             </header>
 
-            <div ref={reportRef} id="report-content" style={{ backgroundColor: '#0B0F1A', color: 'white' }}>
-                <main className="p-6 md:p-12 max-w-7xl mx-auto w-full space-y-16 md:space-y-24">
-                    <section className="bg-surface-dark/50 rounded-[2.5rem] md:rounded-[4rem] p-10 md:p-20 border border-white/5 relative overflow-hidden shadow-2xl">
-                        <div className="flex flex-col lg:flex-row items-center justify-center gap-12 md:gap-20">
-                            <div className="relative text-center">
-                                <span className={`text-[110px] md:text-[200px] leading-none font-black italic drop-shadow-[0_20px_50px_rgba(19,91,236,0.4)] ${reportData.score >= 7 ? 'text-accent-green' : reportData.score >= 5 ? 'text-accent-yellow' : 'text-accent-red'}`}>
-                                    {reportData.score}
-                                </span>
-                                <div className="text-lg md:text-3xl font-black opacity-30 uppercase tracking-[0.6em] mt-10">SCORE FINAL</div>
-                            </div>
-                            <div className={`flex-1 p-8 md:p-14 rounded-[2rem] md:rounded-[3rem] border-2 shadow-2xl ${reportData.score >= 7 ? 'border-accent-green/30 bg-accent-green/5' : 'border-accent-red/30 bg-accent-red/5'}`}>
-                                <h2 className="text-3xl md:text-5xl font-black uppercase mb-6 italic">{reportData.verdict.status}</h2>
-                                <p className="text-xl md:text-3xl font-bold text-slate-300 leading-snug">{reportData.verdict.summary}</p>
-                            </div>
+            <main ref={reportRef} className="p-6 md:p-12 max-w-[1400px] mx-auto w-full space-y-12">
+                <section className="bg-surface-dark p-10 rounded-[3rem] border border-white/5 shadow-2xl">
+                    <div className="space-y-6">
+                        <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-orange-500/10 text-orange-500 rounded-full border border-orange-500/20 text-[10px] font-black uppercase tracking-widest">
+                            Análise Especialista Master
                         </div>
-                    </section>
+                        <h2 className="text-4xl md:text-6xl font-black uppercase italic tracking-tighter text-white leading-tight">
+                            {reportData.verdict.status}
+                        </h2>
+                        <p className="text-xl text-slate-400 font-bold leading-relaxed">{reportData.verdict.summary}</p>
+                    </div>
+                </section>
 
-                    <section className="space-y-10">
-                        <div className="flex items-center gap-6 px-4">
-                            <span className="material-symbols-outlined text-accent-red text-5xl md:text-6xl">warning</span>
-                            <h3 className="text-2xl md:text-5xl font-black tracking-normal uppercase italic">Análise de Falhas Crônicas</h3>
+                <section className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    {[
+                        { label: 'Óleo Motor', val: reportData.technicalSpecs.oilType, icon: 'oil_barrel' },
+                        { label: 'Capacidade', val: reportData.technicalSpecs.oilCapacity, icon: 'format_color_fill' },
+                        { label: 'Radiador', val: reportData.technicalSpecs.coolantType, icon: 'ac_unit' },
+                        { label: 'Torque Roda', val: reportData.technicalSpecs.wheelTorque, icon: 'dynamic_form' },
+                        { label: 'Pressão Pneu', val: reportData.technicalSpecs.tire_pressure || 'Consulte Manual', icon: 'tire_repair' }
+                    ].map((st, i) => (
+                        <div key={i} className="bg-surface-dark/50 p-6 rounded-3xl border border-white/5 flex flex-col items-center text-center space-y-2 group hover:border-orange-500/30 transition-all">
+                            <span className="material-symbols-outlined text-2xl text-orange-500">{st.icon}</span>
+                            <div className="text-sm font-black text-white">{st.val}</div>
+                            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{st.label}</p>
                         </div>
-                        <div className="grid grid-cols-1 gap-8">
-                            {reportData.defects.map((defect, i) => (
-                                <div key={i} className="bg-surface-dark p-8 md:p-12 rounded-[2rem] md:rounded-[3rem] border border-white/5 shadow-xl">
-                                    <div className="relative z-10 space-y-6">
-                                        <div className="flex items-center gap-5">
-                                            <div className="size-14 md:size-20 rounded-2xl bg-accent-red/10 border border-accent-red/20 flex items-center justify-center text-accent-red">
-                                                <span className="material-symbols-outlined text-3xl md:text-5xl font-black">construction</span>
-                                            </div>
-                                            <h4 className="text-2xl md:text-4xl font-black uppercase tracking-normal text-white">{defect.title}</h4>
-                                        </div>
-                                        <p className="text-lg md:text-2xl text-slate-400 font-bold leading-relaxed">{defect.description}</p>
-                                        <div className="inline-flex px-6 py-2 rounded-lg bg-accent-red/20 text-accent-red text-xs md:text-lg font-black uppercase tracking-widest italic">GRAVIDADE: {defect.severity}</div>
-                                    </div>
+                    ))}
+                </section>
+                
+                <section className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-6">
+                        <h3 className="text-2xl font-black uppercase italic tracking-tighter flex items-center gap-3">
+                            <span className="material-symbols-outlined text-orange-500">warning</span> Pontos Críticos
+                        </h3>
+                        {reportData.defects.map((d, i) => (
+                            <div key={i} className="bg-white/5 p-8 rounded-3xl border border-white/5 hover:bg-white/[0.08] transition-all">
+                                <div className="flex justify-between items-start mb-4">
+                                    <h4 className="text-lg font-black uppercase text-white">{d.title}</h4>
+                                    <span className="px-3 py-1 bg-red-500/20 text-red-500 rounded-full text-[9px] font-black uppercase">{d.severity}</span>
                                 </div>
-                            ))}
-                        </div>
-                    </section>
-
-                    <section className="space-y-10">
-                        <div className="flex items-center gap-6 px-4">
-                            <span className="material-symbols-outlined text-accent-yellow text-5xl md:text-6xl">groups</span>
-                            <h3 className="text-2xl md:text-5xl font-black tracking-normal uppercase italic">Voz da Comunidade</h3>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            {reportData.comments.map((comment, i) => (
-                                <div key={i} className="bg-surface-dark/30 p-8 rounded-[2rem] border border-white/5 flex flex-col gap-4 shadow-lg">
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-xs font-black text-primary uppercase tracking-widest">{comment.name}</span>
-                                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${comment.role.toLowerCase().includes('mecânico') ? 'bg-primary/20 text-primary' : 'bg-white/10 text-slate-400'}`}>
-                                            {comment.role}
-                                        </span>
-                                    </div>
-                                    <p className="text-sm md:text-lg text-slate-300 font-bold italic leading-relaxed">"{comment.text}"</p>
-                                    <div className="mt-4 pt-4 border-t border-white/5 flex items-center gap-2">
-                                        <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">Procedência: {comment.source}</span>
-                                    </div>
+                                <p className="text-slate-400 text-sm font-bold leading-relaxed">{d.description}</p>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="space-y-6">
+                        <h3 className="text-2xl font-black uppercase italic tracking-tighter flex items-center gap-3">
+                            <span className="material-symbols-outlined text-orange-500">calendar_month</span> Manutenção Preventiva
+                        </h3>
+                        {reportData.maintenanceRoadmap.map((m, i) => (
+                            <div key={i} className="bg-white/5 p-8 rounded-3xl border border-white/5 border-l-4 border-l-orange-500">
+                                <h4 className="text-lg font-black text-white italic mb-4">Plano {m.km}</h4>
+                                <div className="flex flex-wrap gap-2">
+                                    {m.items.map((item, j) => (
+                                        <span key={j} className="px-3 py-1.5 bg-background-dark rounded-xl text-[10px] font-black text-slate-400 uppercase tracking-widest border border-white/5">{item}</span>
+                                    ))}
                                 </div>
-                            ))}
-                        </div>
-                    </section>
-                </main>
-            </div>
+                            </div>
+                        ))}
+                    </div>
+                </section>
+            </main>
         </div>
     );
 };

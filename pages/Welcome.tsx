@@ -9,133 +9,62 @@ const Welcome: React.FC = () => {
     const { user, loading } = useAuth();
     const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
     const [showInstallBanner, setShowInstallBanner] = useState(false);
-    const [isIOS, setIsIOS] = useState(false);
 
     useEffect(() => {
         if (!loading && user) navigate(AppRoute.HOME);
     }, [user, loading, navigate]);
 
     useEffect(() => {
-        // Detectar iOS para mostrar instrução manual
-        const isIosDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
-        setIsIOS(isIosDevice);
-
-        // Capturar o prompt de instalação (Android/Chrome)
+        const isBannerDismissed = localStorage.getItem('autointel_install_dismissed') === 'true';
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+        
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             setDeferredPrompt(e);
-            setShowInstallBanner(true);
+            if (!isStandalone && !isBannerDismissed) setShowInstallBanner(true);
         });
-
-        // Verificar se já está em modo standalone (já instalado)
-        if (window.matchMedia('(display-mode: standalone)').matches) {
-            setShowInstallBanner(false);
-        }
-
-        // Se for iOS e não estiver instalado, mostrar banner após 2 segundos
-        if (isIosDevice && !window.matchMedia('(display-mode: standalone)').matches) {
-            setTimeout(() => setShowInstallBanner(true), 2000);
-        }
     }, []);
-
-    const handleInstallClick = async () => {
-        if (deferredPrompt) {
-            deferredPrompt.prompt();
-            const { outcome } = await deferredPrompt.userChoice;
-            if (outcome === 'accepted') {
-                setDeferredPrompt(null);
-                setShowInstallBanner(false);
-            }
-        } else if (isIOS) {
-            alert('Para instalar: Clique no ícone de "Compartilhar" do Safari e selecione "Adicionar à Tela de Início".');
-        }
-    };
 
     return (
         <div className="flex flex-col h-screen bg-background-dark text-white overflow-hidden relative">
-            {/* Banner de Instalação */}
-            {showInstallBanner && (
-                <div className="fixed top-4 left-4 right-4 z-[100] animate-fade-in">
-                    <div className="glass p-4 rounded-3xl border border-primary/30 flex items-center justify-between shadow-[0_20px_40px_rgba(0,0,0,0.4)]">
-                        <div className="flex items-center gap-3">
-                            <div className="size-10 rounded-xl bg-primary flex items-center justify-center">
-                                <span className="material-symbols-outlined text-white text-xl font-bold">install_mobile</span>
-                            </div>
-                            <div>
-                                <h4 className="text-xs font-black uppercase tracking-widest text-white">Instalar AutoIntel</h4>
-                                <p className="text-[10px] text-slate-400 font-bold">Acesse direto da tela inicial</p>
-                            </div>
+            <div className="absolute top-[-5%] left-[-10%] w-[100%] h-[40%] bg-primary/10 blur-[120px] rounded-full"></div>
+            
+            <main className="flex-1 flex flex-col items-center justify-center px-8 z-10">
+                <div className="max-w-3xl w-full text-center space-y-12">
+                    <div className="flex flex-col items-center gap-8 animate-fade-in">
+                        <div className="size-24 rounded-3xl bg-gradient-to-br from-primary to-blue-700 flex items-center justify-center shadow-2xl ring-8 ring-primary/10">
+                            <span className="material-symbols-outlined text-[50px] text-white font-bold">handyman</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <button 
-                                onClick={() => setShowInstallBanner(false)}
-                                className="p-2 text-slate-500 hover:text-white"
-                            >
-                                <span className="material-symbols-outlined text-xl">close</span>
-                            </button>
-                            <button 
-                                onClick={handleInstallClick}
-                                className="bg-primary px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/20"
-                            >
-                                {isIOS ? 'Como Baixar' : 'Baixar App'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Background Glows */}
-            <div className="absolute top-[-5%] left-[-10%] w-[100%] h-[40%] md:w-[70%] md:h-[50%] bg-primary/10 blur-[80px] md:blur-[120px] rounded-full"></div>
-            <div className="absolute bottom-[-5%] right-[-10%] w-[100%] h-[40%] md:w-[70%] md:h-[50%] bg-blue-600/10 blur-[80px] md:blur-[120px] rounded-full"></div>
-
-            <main className="flex-1 flex flex-col items-center justify-center px-6 md:px-8 z-10">
-                <div className="max-w-2xl w-full text-center space-y-8 md:space-y-12">
-                    {/* Logo Section */}
-                    <div className="flex flex-col items-center gap-4 md:gap-6 animate-fade-in">
-                        <div className="size-16 md:size-20 rounded-2xl md:rounded-[2rem] bg-gradient-to-br from-primary to-blue-700 flex items-center justify-center shadow-[0_0_40px_rgba(19,91,236,0.4)] ring-4 ring-primary/20">
-                            <span className="material-symbols-outlined text-[32px] md:text-[44px] text-white font-bold">network_intelligence</span>
-                        </div>
-                        <h1 className="text-4xl md:text-7xl font-black tracking-tighter text-white leading-none">
-                            AutoIntel <span className="text-primary">AI</span>
+                        <h1 className="text-5xl md:text-8xl font-black tracking-tighter text-white leading-none">
+                            AutoIntel <span className="text-primary italic">PRO</span>
                         </h1>
                     </div>
 
-                    {/* Content Section */}
-                    <div className="space-y-4 md:space-y-6">
-                        <h2 className="text-2xl md:text-4xl font-extrabold leading-tight text-white/90 px-2 md:px-4">
-                            O padrão ouro em <br className="hidden sm:block"/> <span className="italic">análise automotiva.</span>
+                    <div className="space-y-6">
+                        <h2 className="text-3xl md:text-5xl font-extrabold leading-tight text-white/90">
+                            A ferramenta que fala a <br/> <span className="text-orange-500">língua da oficina.</span>
                         </h2>
-                        <p className="text-[15px] md:text-xl text-slate-400 font-medium max-w-lg mx-auto leading-relaxed">
-                            Analise componentes, preveja manutenções e tome decisões de compra baseadas em dados reais de engenharia.
+                        <p className="text-lg md:text-2xl text-slate-400 font-medium max-w-xl mx-auto leading-relaxed">
+                            O pulo do gato pra torques, capacidades e diagnóstico especialista. Direto ao ponto, sem enrolação técnica.
                         </p>
                     </div>
 
-                    {/* Actions Section */}
-                    <div className="flex flex-col gap-4 pt-4 md:pt-8 max-w-sm mx-auto w-full">
+                    <div className="flex flex-col gap-6 pt-10 max-w-sm mx-auto w-full">
                         <button 
                             onClick={() => navigate(AppRoute.LOGIN)}
-                            className="group relative flex items-center justify-center h-16 md:h-20 bg-primary rounded-xl md:rounded-[2rem] text-[18px] md:text-2xl font-black tracking-tight shadow-lg shadow-primary/30 hover:bg-blue-600 active:scale-[0.97] transition-all overflow-hidden"
+                            className="group relative flex items-center justify-center h-20 bg-primary rounded-[2rem] text-xl font-black tracking-tight shadow-2xl shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] transition-all overflow-hidden"
                         >
-                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-                            <span className="relative z-10 flex items-center gap-2">
-                                Iniciar Consultoria
-                                <span className="material-symbols-outlined font-bold text-2xl">arrow_forward</span>
+                            <span className="relative z-10 flex items-center gap-3 uppercase tracking-widest">
+                                Abrir Painel da Oficina
+                                <span className="material-symbols-outlined font-bold">arrow_forward</span>
                             </span>
                         </button>
-                        
-                        <p className="text-slate-500 font-bold text-[10px] md:text-sm tracking-wide uppercase opacity-60 mt-4">
-                            Acesso seguro via AutoIntel Auth
-                        </p>
                     </div>
                 </div>
             </main>
 
-            {/* Status Footer */}
-            <footer className="p-6 md:p-10 text-center z-10">
-                <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
-                    <span className="size-1.5 bg-accent-green rounded-full animate-pulse shadow-[0_0_8px_#10B981]"></span>
-                    <span className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-white/50">AutoIntel Neural Cloud</span>
-                </div>
+            <footer className="p-12 text-center opacity-40">
+                <p className="text-[11px] font-black uppercase tracking-[0.5em]">Feito de Mecânico para Mecânico • V4.5</p>
             </footer>
         </div>
     );
