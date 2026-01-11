@@ -1,12 +1,11 @@
 
-const CACHE_NAME = 'autointel-v4.5.5';
+const CACHE_NAME = 'autointel-static-v4.5.6';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
   '/manifest.json'
 ];
 
-// Instalação: Cacheia arquivos básicos
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
@@ -16,27 +15,27 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
-// Ativação: Limpa caches velhos
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
+    caches.keys().then((keys) => {
+      return Promise.all(keys.map((key) => {
+        if (key !== CACHE_NAME) return caches.delete(key);
+      }));
+    }).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
-// Estratégia: Network First (Prioriza rede, senão vai pro cache)
 self.addEventListener('fetch', (event) => {
+  // Estratégia Stale-While-Revalidate para performance máxima
   event.respondWith(
-    fetch(event.request).catch(() => {
-      return caches.match(event.request);
+    caches.match(event.request).then((cachedResponse) => {
+      const fetchPromise = fetch(event.request).then((networkResponse) => {
+        caches.open(CACHE_NAME).then((cache) => {
+          cache.put(event.request, networkResponse.clone());
+        });
+        return networkResponse;
+      }).catch(() => null);
+      return cachedResponse || fetchPromise;
     })
   );
 });

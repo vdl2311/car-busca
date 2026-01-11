@@ -37,14 +37,38 @@ const Profile: React.FC<ProfileProps> = ({ isDark, toggleTheme }) => {
     const [refreshing, setRefreshing] = useState(false);
     const [activeTab, setActiveTab] = useState<'reports' | 'chats'>('reports');
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
-    const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+    const [canInstall, setCanInstall] = useState(false);
 
+    // Verifica se o prompt nativo está disponível
     useEffect(() => {
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            setDeferredPrompt(e);
-        });
+        const checkInstall = () => {
+            if ((window as any).deferredPrompt) {
+                setCanInstall(true);
+            }
+        };
+        checkInstall();
+        const timer = setInterval(checkInstall, 1000);
+        return () => clearInterval(timer);
     }, []);
+
+    const handleNativeInstall = async () => {
+        const promptEvent = (window as any).deferredPrompt;
+        if (!promptEvent) {
+            alert("Use o menu do navegador e selecione 'Adicionar à tela de início'.");
+            return;
+        }
+        
+        // Dispara o prompt oficial do navegador/sistema
+        promptEvent.prompt();
+        
+        const { outcome } = await promptEvent.userChoice;
+        console.log(`[AutoIntel] Decisão do usuário: ${outcome}`);
+        
+        if (outcome === 'accepted') {
+            (window as any).deferredPrompt = null;
+            setCanInstall(false);
+        }
+    };
 
     const fetchData = useCallback(async (isManual = false) => {
         if (!user) return;
@@ -58,13 +82,7 @@ const Profile: React.FC<ProfileProps> = ({ isDark, toggleTheme }) => {
                 supabase.from('chat_history').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(20)
             ]);
 
-            if (reportsRes.error) {
-                console.error("Erro Supabase Reports:", reportsRes.error);
-                if (reportsRes.error.message.includes("cache") || reportsRes.error.message.includes("not found")) {
-                    setErrorMessage("ERRO: Tabelas não encontradas no Supabase. Execute o script SQL no README.md.");
-                }
-            }
-            
+            if (reportsRes.error) console.error("Erro Reports:", reportsRes.error);
             if (chatsRes.data) setChats(chatsRes.data);
             if (reportsRes.data) setHistory(reportsRes.data);
         } catch (e: any) { 
@@ -78,13 +96,6 @@ const Profile: React.FC<ProfileProps> = ({ isDark, toggleTheme }) => {
     useEffect(() => {
         fetchData();
     }, [fetchData]);
-
-    const handleInstall = async () => {
-        if (!deferredPrompt) return;
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        if (outcome === 'accepted') setDeferredPrompt(null);
-    };
 
     const handleLogout = async () => {
         await signOut();
@@ -114,19 +125,19 @@ const Profile: React.FC<ProfileProps> = ({ isDark, toggleTheme }) => {
             </header>
 
             <main className="max-w-5xl mx-auto w-full p-6 md:p-12 space-y-10 pb-40">
-                {/* Promoção Instalação Mobile */}
-                {deferredPrompt && (
-                    <section onClick={handleInstall} className="bg-orange-600 p-8 rounded-[3rem] text-white flex flex-col md:flex-row items-center justify-between gap-6 cursor-pointer shadow-2xl shadow-orange-600/30">
+                {/* PROMPT NATIVO - EXATAMENTE COMO SOLICITADO */}
+                {canInstall && (
+                    <section onClick={handleNativeInstall} className="bg-orange-600 p-8 rounded-[3rem] text-white flex flex-col md:flex-row items-center justify-between gap-6 cursor-pointer shadow-2xl shadow-orange-600/30 animate-bounce-subtle">
                         <div className="flex items-center gap-6">
                             <div className="size-16 rounded-2xl bg-white/20 flex items-center justify-center shrink-0">
-                                <span className="material-symbols-outlined text-4xl">add_to_home_screen</span>
+                                <span className="material-symbols-outlined text-4xl">download_for_offline</span>
                             </div>
                             <div>
-                                <h3 className="text-xl font-black uppercase italic tracking-tight">Instale o AutoIntel Pro</h3>
-                                <p className="text-xs font-bold opacity-80 uppercase tracking-widest mt-1">Acesso rápido direto da sua tela inicial</p>
+                                <h3 className="text-xl font-black uppercase italic tracking-tight">Deseja instalar o APP?</h3>
+                                <p className="text-xs font-bold opacity-80 uppercase tracking-widest mt-1">Clique para abrir a opção oficial do seu celular</p>
                             </div>
                         </div>
-                        <button className="bg-white text-orange-600 px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px]">Baixar Agora</button>
+                        <button className="bg-white text-orange-600 px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg">Instalar Agora</button>
                     </section>
                 )}
 
