@@ -1,6 +1,6 @@
 
 /**
- * SERVICE WORKER DE "AUTO-DESTRUIÇÃO"
+ * SERVICE WORKER DE "AUTO-DESTRUIÇÃO" v4.5.4
  * Este arquivo limpa qualquer cache anterior e se desativa.
  * Isso garante que o navegador sempre busque o index.html novo do Vercel.
  */

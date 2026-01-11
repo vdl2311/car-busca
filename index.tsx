@@ -38,11 +38,11 @@ async function clearAllCaches() {
       }
 
       // 3. Controle de Versão para recarregamento forçado
-      const VERSION = '4.5.3'; // Incremento para forçar novo ciclo
+      const VERSION = '4.5.4'; // Incremento para forçar novo ciclo e atualização de ícone
       const lastVersion = localStorage.getItem('autointel_version');
       if (lastVersion !== VERSION) {
         localStorage.setItem('autointel_version', VERSION);
-        console.log('[AutoIntel] Nova versão detectada. Reiniciando para aplicar mudanças de UI...');
+        console.log('[AutoIntel] Nova versão detectada. Reiniciando para aplicar mudanças de UI e ícones...');
         // Reload apenas se não houver erro crítico anterior
         setTimeout(() => window.location.reload(), 100);
       }
@@ -62,7 +62,7 @@ async function clearAllCaches() {
 // Inicia processo de limpeza em background
 clearAllCaches();
 
-console.log('%c AutoIntel Pro v4.5.3 - ENGINE LARANJA ATIVA ', 'background: #f97316; color: white; font-weight: bold; padding: 4px; border-radius: 4px;');
+console.log('%c AutoIntel Pro v4.5.4 - ENGINE LARANJA ATIVA ', 'background: #f97316; color: white; font-weight: bold; padding: 4px; border-radius: 4px;');
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
